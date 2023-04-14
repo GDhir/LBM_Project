@@ -2,6 +2,7 @@
 #include<vector>
 #include<fstream>
 #include<cstring>
+#include<algorithm>
 
 #define Q9 9
 #define dim 2
@@ -32,14 +33,17 @@ void calcMacroscopic( double* fvals, double* rho, double* ux, double* uy, double
 
                 }
 
-                ux[ idx ] /= rho[ idx ];
-                uy[ idx ] /= rho[ idx ];
+                if( rho[ idx ] != 0 ) {
+
+                    std::cout << rho[ idx ] << "\n";
+
+                    ux[ idx ] /= rho[ idx ];
+                    uy[ idx ] /= rho[ idx ];
+                }
 
             // }
         }
     }
-
-
 }
 
 void performStream( double* fvals, double* ftemp, double* ex, double* ey ) {
@@ -78,7 +82,6 @@ void performStream( double* fvals, double* ftemp, double* ex, double* ey ) {
                 ftemp[ ftempidx ] = fvals[ idx ];
 
             }            
-
         }
     }
 
@@ -126,19 +129,18 @@ void calcEqDis( double* feq, double* rho, double* ux, double* uy, double g, doub
 
             int fidx = idx*Q9;
 
-            feq[ fidx + 0 ] = rt0*( 1. - f3*usq);
-            feq[ fidx + 1 ] = rt1*( 1. + f1*ueqxij + f2*uxsq - f3*usq);
-            feq[ fidx + 2 ] = rt1*( 1. + f1*ueqyij + f2*uysq - f3*usq);
-            feq[ fidx + 3 ] = rt1*( 1. - f1*ueqxij + f2*uxsq - f3*usq);
-            feq[ fidx + 4 ] = rt1*( 1. - f1*ueqyij + f2*uysq - f3*usq);
-            feq[ fidx + 5 ] = rt2*( 1. + f1*uxuy5 + f2*uxuy5*uxuy5 - f3*usq);
-            feq[ fidx + 6 ] = rt2*( 1. + f1*uxuy6 + f2*uxuy6*uxuy6 - f3*usq);
-            feq[ fidx + 7 ] = rt2*( 1. + f1*uxuy7 + f2*uxuy7*uxuy7 - f3*usq);
-            feq[ fidx + 8 ] = rt2*( 1. + f1*uxuy8 + f2*uxuy8*uxuy8 - f3*usq);
+            feq[ fidx + 0 ] = rt0*( 1 - f3*usq);
+            feq[ fidx + 1 ] = rt1*( 1 + f1*ueqxij + f2*uxsq - f3*usq);
+            feq[ fidx + 2 ] = rt1*( 1 + f1*ueqyij + f2*uysq - f3*usq);
+            feq[ fidx + 3 ] = rt1*( 1 - f1*ueqxij + f2*uxsq - f3*usq);
+            feq[ fidx + 4 ] = rt1*( 1 - f1*ueqyij + f2*uysq - f3*usq);
+            feq[ fidx + 5 ] = rt2*( 1 + f1*uxuy5 + f2*uxuy5*uxuy5 - f3*usq);
+            feq[ fidx + 6 ] = rt2*( 1 + f1*uxuy6 + f2*uxuy6*uxuy6 - f3*usq);
+            feq[ fidx + 7 ] = rt2*( 1 + f1*uxuy7 + f2*uxuy7*uxuy7 - f3*usq);
+            feq[ fidx + 8 ] = rt2*( 1 + f1*uxuy8 + f2*uxuy8*uxuy8 - f3*usq);
 
         }
     }
-
 }
 
 void collide( double* f, double*ftemp, double* feq, double tau  ) {
@@ -193,10 +195,10 @@ void applyBC( double* f, double* ftemp ) {
 void performLBM( double* fvals, double* rho, double* ux, double* uy, double*ex, double* ey, int szf, int Niter ) {
 
     double* ftemp = new double[ szf ];
-    memset( ftemp, 0, szf*sizeof( double ) );
+    std::fill( ftemp, ftemp + szf, 0 );
 
     double* feq = new double[ szf ];
-    memset( feq, 0, szf*sizeof( double ) );
+    std::fill( feq, feq + szf, 0 );
 
     double tau = 1;
     double g = 0.001102;
@@ -212,16 +214,18 @@ void performLBM( double* fvals, double* rho, double* ux, double* uy, double*ex, 
 
 }
 
-void printu( double* ux, double* uy ){
+void printu( double* ux, double* uy, std::string fname ){
 
-    std::ofstream fhandle{ "velocity.txt", std::ofstream::out };
+    std::ofstream fhandle{ fname, std::ofstream::out };
+
+    fhandle << Nx << "\t" << Ny << "\n";    
 
     for( int j = 0; j < Ny; j++ ) {
         for( int i = 0; i < Nx; i++ ) {
 
             int idx = j*Nx + i;
 
-            fhandle << ux[ idx ] << "\t" << uy[ idx ];
+            fhandle << ux[ idx ] << "\t" << uy[ idx ] << "\t" << i << "\t" << j << "\n";
 
         }
     }
@@ -236,31 +240,33 @@ int main() {
     int sz = Nx*Ny;
 
     double* fvals = new double[ szf ];
-    memset( fvals, 0, szf*sizeof( double ) );
+    std::fill( fvals, fvals + szf, 0.1 );
 
     double* rho = new double[ sz ];
-    memset( rho, 0, sz*sizeof( double ) );
+    std::fill( rho, rho + sz, 0.1 );
 
     double* ux = new double[ sz ];
-    memset( ux, 0, sz*sizeof( double ) );
+    std::fill( ux, ux + sz, 0.1 );
 
     double* uy = new double[ sz ];
-    memset( uy, 0, sz*sizeof( double ) ); 
+    std::fill( uy, uy + sz, 0.1 );
     
-    double restw = 4/(double) 9;
-    double stw = 1/(double) 9;
-    double diagw = 1/(double) 36;
+    double restw = 4.0/9.0;
+    double stw = 1.0/9.0;
+    double diagw = 1.0/36.0;
 
     double* ex = new double[ Q9 ]{ 0, 1, 0, -1, 0, 1, -1, -1, 1 };
     double* ey = new double[ Q9 ]{ 0, 0, 1, 0, -1, 1, 1, -1, -1 };
     double* w = new double[ Q9 ]{ restw, stw, stw, stw, stw, diagw, diagw, diagw, diagw };
 
+    // std::cout << ex[1] << "\t" << ey[2] << "\n";
+
     double c = 1;
-    int Niter = 200;
+    int Niter = 1000;
 
     performLBM( fvals, rho, ux, uy, ex, ey, szf, Niter );
 
-    printu( ux, uy );
+    printu( ux, uy, "velocity.txt" );
 
     return 0;
 }
