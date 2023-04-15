@@ -41,7 +41,7 @@
 //
 
 using Float = double;
-//using MyFloat = double;
+//using Float = float;
 
 template<int32_t DimX, int32_t DimY, typename T = Float>
 using Grid = T[DimX+2][DimY+2];
