@@ -23,8 +23,10 @@ Z = Z.T
 
 # plots filled contour plot
 fig, ax = plt.subplots(1, 1)
-ax.contourf(X, Y, Z)
+color_bar = ax.contourf(X, Y, Z)
 ax.set_title('Filled Contour Plot')
-ax.set_xlabel('feature_x')
-ax.set_ylabel('feature_y')
+ax.set_xlabel('X')
+ax.set_ylabel('Y')
+plt.colorbar(color_bar)
+plt.savefig('serial_lid_driven_cavity.png')
 plt.show()
