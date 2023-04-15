@@ -43,6 +43,7 @@
 using Float = double;
 //using Float = float;
 
+// Add ghost cells to the grid, hence the +2
 template<int32_t DimX, int32_t DimY, typename T = Float>
 using Grid = T[DimX+2][DimY+2];
 
