@@ -24,7 +24,7 @@ Z = Z.T
 # plots filled contour plot
 fig, ax = plt.subplots(1, 1)
 color_bar = ax.contourf(X, Y, Z)
-ax.set_title('Filled Contour Plot')
+ax.set_title('Lid Driven Cavity, Serial')
 ax.set_xlabel('X')
 ax.set_ylabel('Y')
 plt.colorbar(color_bar)
