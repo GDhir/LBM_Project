@@ -78,25 +78,11 @@ Grid<NX, NY, Vec2>     velocity2_ = {};
 Grid<NX, NY, Float>    density_   = {};
 
 /**
- * Output tecplot file
+ * Output tecplot file or 2D matrix
  * @param step
  */
 void save(int32_t step) {
-    // TODO: output 2D matrix
-//    FILE *pDatFile = fopen(("../op" + std::to_string(step) + ".dat").c_str(), "w");
-//    for(int32_t x = xStart; x < xEnd; ++x) {
-//        for(int32_t y = yStart; y < yEnd; ++y) {
-//            fprintf(
-//                    pDatFile,
-//                    "%e ",
-//                    std::sqrt(sqr(velocity1_[x][y].x) + sqr(velocity1_[x][y].y))
-//            );
-//        }
-//        fprintf(pDatFile, "\n");
-//    }
-//    fflush(pDatFile);
-//    fclose(pDatFile);
-
+#ifdef TECPLOT
     FILE *pDatFile = fopen(("lbm_lid_cavity_" + std::to_string(step) + ".dat").c_str(), "w");
     fprintf(pDatFile, "Title= \"LBM Lid Driven Flow\"\n");
     fprintf(pDatFile, "VARIABLES=\"X\",\"Y\",\"U\",\"V\",\"UV\", \"rho\"\n");
@@ -108,6 +94,22 @@ void save(int32_t step) {
     }
     fflush(pDatFile);
     fclose(pDatFile);
+#else
+    FILE *pDatFile = fopen(("lbm_lid_cavity_" + std::to_string(step) + ".pydat").c_str(), "w");
+    fprintf(pDatFile, "%d %d\n", NX, NY);
+    for(int32_t x = xStart; x < xEnd; ++x) {
+        for(int32_t y = yStart; y < yEnd; ++y) {
+            fprintf(
+                    pDatFile,
+                    "%e ",
+                    std::sqrt(sqr(velocity1_[x][y].x) + sqr(velocity1_[x][y].y))
+            );
+        }
+        fprintf(pDatFile, "\n");
+    }
+    fflush(pDatFile);
+    fclose(pDatFile);
+#endif
 }
 
 Float feq(const int32_t q, const Float density, const Vec2 vel) {
