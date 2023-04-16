@@ -44,8 +44,12 @@ if __name__ == "__main__":
         plt.savefig( "plotval.png" )
 
         plt.figure()
-        plt.contour( X, Y, uvals )
+        plt.contour( X, Y, uvals, levels = 40 )
         plt.savefig( "plotcontour.png" )
+
+        plt.figure()
+        plt.contourf( X, Y, uvals, levels = 40 )
+        plt.savefig( "plotcontourf.png" )
 
 
     a = 4
