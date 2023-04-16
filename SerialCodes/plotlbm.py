@@ -43,6 +43,7 @@ if __name__ == "__main__":
         plt.quiver( X, Y, uxvals, uyvals )
         plt.savefig( "plotval.png" )
 
+        plt.figure()
         plt.contour( X, Y, uvals )
         plt.savefig( "plotcontour.png" )
 
