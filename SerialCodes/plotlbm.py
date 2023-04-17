@@ -40,15 +40,17 @@ if __name__ == "__main__":
             X[ j, i ] = i
             Y[ j, i ] = j
 
-        plt.quiver( X, Y, uxvals, uyvals )
+        plt.quiver( X[ 1:Ny - 1, : ], Y[ 1:Ny - 1, : ], uxvals[ 1:Ny - 1, : ], uyvals[ 1:Ny - 1, : ] )
         plt.savefig( "plotval.png" )
 
         plt.figure()
-        plt.contour( X, Y, uvals, levels = 40 )
+        plt.contour( X[ 1:Ny - 1, : ], Y[ 1:Ny - 1, : ], uvals[ 1:Ny - 1, : ], levels = 40 )
+        plt.colorbar()
         plt.savefig( "plotcontour.png" )
 
         plt.figure()
-        plt.contourf( X, Y, uvals, levels = 40 )
+        plt.contourf( X[ 1:Ny - 1, : ], Y[ 1:Ny - 1, : ], uvals[ 1:Ny - 1, : ], levels = 40 )
+        plt.colorbar()
         plt.savefig( "plotcontourf.png" )
 
 

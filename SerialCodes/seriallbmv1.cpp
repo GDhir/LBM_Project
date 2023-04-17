@@ -71,12 +71,15 @@ void performStream( double* fvals, double* ftemp, double* ex, double* ey ) {
                     tempi = Nx - 1;
                 }
 
-                if( tempj == Ny ) {
-                    tempj = 0;
-                }
-                else if( tempj == -1 ) {
-                    tempj = Ny - 1;
-                }
+                // if( tempj == Ny ) {
+                //     tempj = 0;
+                // }
+                // else if( tempj == -1 ) {
+                //     tempj = Ny - 1;
+                // }
+
+                if( tempj == Ny || tempj == -1 )
+                    continue;
 
                 // std::cout << tempi << "\t" << tempj << "\t" << i << "\t" << j << "\n";
 
@@ -174,37 +177,29 @@ void applyBC( double* f, double* ftemp ) {
 
         int flowidx = i*Q9;
 
-        std::swap( f[ fupidx + 1 ], f[ fupidx + 3 ] );
-        std::swap( f[ fupidx + 2 ], f[ fupidx + 4 ] );
-        std::swap( f[ fupidx + 5 ], f[ fupidx + 7 ] );
-        std::swap( f[ fupidx + 6 ], f[ fupidx + 8 ] );
-        std::swap( f[ fupidx + 3 ], f[ fupidx + 1 ] );
-        std::swap( f[ fupidx + 4 ], f[ fupidx + 2 ] );
-        std::swap( f[ fupidx + 7 ], f[ fupidx + 5 ] );
-        std::swap( f[ fupidx + 8 ], f[ fupidx + 6 ] );
+        // std::swap( f[ fupidx + 1 ], f[ fupidx + 3 ] );
+        // std::swap( f[ fupidx + 2 ], f[ fupidx + 4 ] );
+        // std::swap( f[ fupidx + 5 ], f[ fupidx + 7 ] );
+        // std::swap( f[ fupidx + 6 ], f[ fupidx + 8 ] );
 
-        std::swap( f[ flowidx + 1 ], f[ flowidx + 3 ] );
-        std::swap( f[ flowidx + 2 ], f[ flowidx + 4 ] );
-        std::swap( f[ flowidx + 5 ], f[ flowidx + 7 ] );
-        std::swap( f[ flowidx + 6 ], f[ flowidx + 8 ] );
-        std::swap( f[ flowidx + 3 ], f[ flowidx + 1 ] );
-        std::swap( f[ flowidx + 4 ], f[ flowidx + 2 ] );
-        std::swap( f[ flowidx + 7 ], f[ flowidx + 5 ] );
-        std::swap( f[ flowidx + 8 ], f[ flowidx + 6 ] );
+        // std::swap( f[ flowidx + 1 ], f[ flowidx + 3 ] );
+        // std::swap( f[ flowidx + 2 ], f[ flowidx + 4 ] );
+        // std::swap( f[ flowidx + 5 ], f[ flowidx + 7 ] );
+        // std::swap( f[ flowidx + 6 ], f[ flowidx + 8 ] );
 
         // f[ fupidx + 1 ] = ftemp[ fupidx + 3 ];
         // f[ fupidx + 2 ] = ftemp[ fupidx + 4 ];
         // f[ fupidx + 5 ] = ftemp[ fupidx + 7 ];
         // f[ fupidx + 6 ] = ftemp[ fupidx + 8 ];
         // f[ fupidx + 3 ] = ftemp[ fupidx + 1 ];
-        // f[ fupidx + 4 ] = ftemp[ fupidx + 2 ];
-        // f[ fupidx + 7 ] = ftemp[ fupidx + 5 ];
-        // f[ fupidx + 8 ] = ftemp[ fupidx + 6 ];
+        f[ fupidx + 4 ] = ftemp[ fupidx + 2 ];
+        f[ fupidx + 7 ] = ftemp[ fupidx + 5 ];
+        f[ fupidx + 8 ] = ftemp[ fupidx + 6 ];
 
         // f[ flowidx + 1 ] = ftemp[ flowidx + 3 ];
-        // f[ flowidx + 2 ] = ftemp[ flowidx + 4 ];
-        // f[ flowidx + 5 ] = ftemp[ flowidx + 7 ];
-        // f[ flowidx + 6 ] = ftemp[ flowidx + 8 ];
+        f[ flowidx + 2 ] = ftemp[ flowidx + 4 ];
+        f[ flowidx + 5 ] = ftemp[ flowidx + 7 ];
+        f[ flowidx + 6 ] = ftemp[ flowidx + 8 ];
         // f[ flowidx + 3 ] = ftemp[ flowidx + 1 ];
         // f[ flowidx + 4 ] = ftemp[ flowidx + 2 ];
         // f[ flowidx + 7 ] = ftemp[ flowidx + 5 ];
@@ -254,8 +249,8 @@ void performLBM( double* fvals, double* rho, double* ux, double* uy, double*ex, 
 
     while( t < Niter ) {
 
-        calcMacroscopic( fvals, rho, ux, uy, ex, ey );
         performStream( fvals, ftemp, ex, ey );
+        calcMacroscopic( ftemp, rho, ux, uy, ex, ey );
         calcEqDis( feq, rho, ux, uy, g, tau );
         collide( fvals, ftemp, feq, tau );
         applyBC( fvals, ftemp );
@@ -362,7 +357,7 @@ int main() {
 
     double tau = 1;
     double g = 0.0001373;
-    double U = 0.0333;
+    double U = 0.0333*1.5;
 
     double* fvals = new double[ szf ];
     std::fill( fvals, fvals + szf, 0.001 );
@@ -391,7 +386,7 @@ int main() {
     std::cout << restw << "\t" << stw << "\t" << diagw << "\n";
 
     double c = 1;
-    int Niter = 100;
+    int Niter = 10000;
 
     performLBM( fvals, rho, ux, uy, ex, ey, g, tau, szf, Niter );
 
