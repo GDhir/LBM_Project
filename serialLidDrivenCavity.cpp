@@ -29,15 +29,15 @@
 
 //  D2Q9 model indexing:
 //
-//   6    3    0
+//   6    2    5
 //    \   |   /
 //     \  |  /
 //      \ | /
-//   7--- 4 ---1
+//   7--- 0 ---1
 //      / | \
 //     /  |  \
 //    /   |   \
-//   8    5    2
+//   8    4    9
 //
 
 using Float = double;
@@ -56,9 +56,9 @@ constexpr int32_t NX            = 128;
 constexpr int32_t NY            = 128;
 constexpr int32_t D             = 2;
 constexpr int32_t Q             = 9;
-constexpr Float WEIGHTS[]       = {1./36, 1./9, 1./36, 1./9, 4./9, 1./9, 1./36, 1./9, 1./36};
-constexpr int8_t CX[]           = {    1,    1,     1,    0,    0,    0,    -1,   -1, -1};
-constexpr int8_t CY[]           = {    1,    0,    -1,    1,    0,   -1,     1,    0, -1};
+constexpr Float WEIGHTS[]       = {4./9, 1./9, 1./9, 1./9, 1./9, 1./36, 1./36, 1./36, 1./36};
+constexpr int8_t CX[]           = {   0,    1,    0,   -1,    0,     1,    -1,    -1, 1};
+constexpr int8_t CY[]           = {   0,    0,    1,    0,   -1,     1,     1,    -1, -1};
 constexpr Float RHO0            = 1.;
 constexpr Float LID_VELOCITY    = .1;
 constexpr Float REYNOLDS_NUMBER = 1000.;
