@@ -211,22 +211,23 @@ void calculateMacroscopicProperties(const Grid<NX, NY, Float[Q]> &df, Grid<NX, N
 void applyBoundaryCondition(Grid<NX, NY, Float[Q]> &df, Grid<NX, NY, Float> &density, Grid<NX, NY, Vec2> &velocity) {
     // left and right boundaries
     for(int32_t y = yStart; y < yEnd; ++y) {
+        density[NX+1][y] = density[NX][y];
+        density[0][y]    = density_[1][y];
+
         for(int32_t q = 0; q < Q; ++q) {
-            density[NX+1][y] = density[NX][y];
-            df[NX+1][y][q]   = feq(q, density[NX+1][y], velocity[NX+1][y]) + df[NX][y][q] - feq(q, density[NX][y], velocity[NX][y]);
-            density[0][y]    = density_[1][y];
-            df[0][y][q]      = feq(q, density[0][y], velocity[0][y]) + df[1][y][q] - feq(q, density[1][y], velocity[1][y]);
+            df[NX+1][y][q] = feq(q, density[NX+1][y], velocity[NX+1][y]) + df[NX][y][q] - feq(q, density[NX][y], velocity[NX][y]);
+            df[0][y][q]    = feq(q, density[0][y], velocity[0][y]) + df[1][y][q] - feq(q, density[1][y], velocity[1][y]);
         }
     }
 
     // top and bottom boundaries
     for(int32_t x = 0; x < NX+2; ++x) {
-        for(int32_t q = 0; q < Q; ++q) {
-            density[x][0] = density[x][1];
-            df[x][0][q] = feq(q, density[x][0], velocity[x][0]) + df[x][1][q] - feq(q, density[x][1], velocity[x][1]);
+        density[x][0]       = density[x][1];
+        density[x][NY+1]    = density[x][NY];
+        velocity[x][NY+1].x = LID_VELOCITY;
 
-            density[x][NY+1] = density[x][NY];
-            velocity[x][NY+1].x = LID_VELOCITY;
+        for(int32_t q = 0; q < Q; ++q) {
+            df[x][0][q]    = feq(q, density[x][0], velocity[x][0]) + df[x][1][q] - feq(q, density[x][1], velocity[x][1]);
             df[x][NY+1][q] = feq(q, density[x][NY+1], velocity[x][NY+1]) + df[x][NY][q] - feq(q, density[x][NY], velocity[x][NY]);
         }
     }
