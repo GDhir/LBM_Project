@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -62,6 +63,7 @@ constexpr int8_t CY[]           = {   0,    0,    1,    0,   -1,     1,     1,  
 constexpr Float RHO0            = 1.;
 constexpr Float LID_VELOCITY    = .1;
 constexpr Float REYNOLDS_NUMBER = 1000.;
+constexpr int32_t ITERS         = 40000;
 
 template<typename T>
 constexpr T sqr(const T val) { return val*val; }
@@ -238,23 +240,23 @@ void applyBoundaryCondition(Grid<NX, NY, Float[Q]> &df, Grid<NX, NY, Float> &den
  */
 void latticeBoltzmannMethod() {
     init();
-    Float err = 1;
-    for(int32_t step = 0; 1.e-5 < err; ++step) {
+    auto start = std::chrono::high_resolution_clock::now();
+    for(int32_t step = 0; step < ITERS; ++step) {
         collisionStep(df1_, df2_, density_, velocity1_);
         calculateMacroscopicProperties(df2_, density_, velocity2_);
         applyBoundaryCondition(df2_, density_, velocity2_);
-        err = error(velocity2_, velocity1_);
         std::swap(df1_, df2_);
         std::swap(velocity1_, velocity2_);
         if(step%1000 == 0) {
-            printf("\r[STEP %d][Error %e]", step, err);
+            printf("\r[STEP %d]", step);
             fflush(stdout);
         }
-        if(step%10000 == 0) {
-            save(step);
-        }
     }
-    printf("\r\nError %e\n", err);
+    auto end = std::chrono::high_resolution_clock::now();
+
+    printf("\r\nError %e\n", error(velocity2_, velocity1_));
+    auto time = double(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count())/1.e9;
+    printf("MLUPS %f, %fs\n", double(ITERS*NX*NY)/time, time);
     fflush(stdout);
     save(0);
 }
