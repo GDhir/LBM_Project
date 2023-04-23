@@ -41,17 +41,17 @@ if __name__ == "__main__":
             Y[ j, i ] = j
 
         plt.quiver( X[ 1:Ny - 1, : ], Y[ 1:Ny - 1, : ], uxvals[ 1:Ny - 1, : ], uyvals[ 1:Ny - 1, : ] )
-        plt.savefig( "plotval.png" )
+        plt.savefig( "plotval_pullin.png" )
 
         plt.figure()
         plt.contour( X[ 1:Ny - 1, : ], Y[ 1:Ny - 1, : ], uvals[ 1:Ny - 1, : ], levels = 40 )
         plt.colorbar()
-        plt.savefig( "plotcontour.png" )
+        plt.savefig( "plotcontour_pullin.png" )
 
         plt.figure()
         plt.contourf( X[ 1:Ny - 1, : ], Y[ 1:Ny - 1, : ], uvals[ 1:Ny - 1, : ], levels = 40 )
         plt.colorbar()
-        plt.savefig( "plotcontourf.png" )
+        plt.savefig( "plotcontourf_pullin.png" )
 
 
     a = 4

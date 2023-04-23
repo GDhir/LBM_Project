@@ -9,7 +9,7 @@
 #define dim 2
 
 constexpr int Ny = 12;
-constexpr int Nx = 40;
+constexpr int Nx = 100;
 
 void calcMacroscopic( double* fvals, double* rho, double* ux, double* uy, double* ex, double* ey ) {
 
@@ -34,22 +34,14 @@ void calcMacroscopic( double* fvals, double* rho, double* ux, double* uy, double
 
                 }
 
-                if( rho[ idx ] != 0 ) {
+                ux[ idx ] /= rho[ idx ];
+                uy[ idx ] /= rho[ idx ];
 
-                    // std::cout << rho[ idx ] << "\n";
-
-                    ux[ idx ] /= rho[ idx ];
-                    uy[ idx ] /= rho[ idx ];
-
-                    // std::cout << ux[ idx ] << "\n";
-                }
-
-            // }
         }
     }
 }
 
-void performStream( double* fvals, double* ftemp, double* ex, double* ey ) {
+void performStreamPushOut( double* fvals, double* ftemp, double* ex, double* ey ) {
 
     for( int j = 0; j < Ny; j++ ) {
         for( int i = 0; i < Nx; i++ ) {
@@ -71,15 +63,12 @@ void performStream( double* fvals, double* ftemp, double* ex, double* ey ) {
                     tempi = Nx - 1;
                 }
 
-                // if( tempj == Ny ) {
-                //     tempj = 0;
-                // }
-                // else if( tempj == -1 ) {
-                //     tempj = Ny - 1;
-                // }
-
-                if( tempj == Ny || tempj == -1 )
-                    continue;
+                if( tempj == Ny ) {
+                    tempj = 0;
+                }
+                else if( tempj == -1 ) {
+                    tempj = Ny - 1;
+                }
 
                 // std::cout << tempi << "\t" << tempj << "\t" << i << "\t" << j << "\n";
 
@@ -89,9 +78,164 @@ void performStream( double* fvals, double* ftemp, double* ex, double* ey ) {
 
                 ftemp[ ftempidx ] = fvals[ fidx ];
 
-            }            
+            }
         }
     }
+}
+
+// Pull In Code
+
+void performLBMStepsPullIn( double* fvals, double* ex, double* ey, double tau, double g ) {
+
+    double f1 = 3.0;
+    double f2 = 9.0/2.0;
+    double f3 = 3.0/2.0;
+
+    double rt0{0};
+    double rt1{0};
+    double rt2{0};
+
+    double ueqxij{0};
+    double ueqyij{0};
+    double uxsq{0};
+    double uysq{0};
+    double uxuy5{0};
+    double uxuy6{0};
+    double uxuy7{0};
+    double uxuy8{0};
+    double usq{0};
+
+    double* ftemp = new double[ Q9 ];
+    std::fill( ftemp, ftemp + Q9, 0 );
+
+    double* feq = new double[ Q9 ];
+    std::fill( feq, feq + Q9, 0 );
+
+    double rho, ux, uy;
+
+    for( int j = 0; j < Ny; j++ ) {
+        for( int i = 0; i < Nx; i++ ) {
+
+            int idx = j*Nx + i;
+
+            for( int k = 0; k < Q9; k++ ) {
+
+                int xval = ex[k];
+                int yval = ey[k];
+
+                int tempi = i - xval;
+                int tempj = j - yval;
+
+                if( tempi == Nx ) {
+                    tempi = 0;
+                }
+                else if( tempi == -1 ) {
+                    tempi = Nx - 1;
+                }
+
+                if( tempj == Ny ) {
+                    tempj = 0;
+                }
+                else if( tempj == -1 ) {
+                    tempj = Ny - 1;
+                }
+
+                int ftempidx = tempj*Nx*Q9 + tempi*Q9 + k;
+
+                ftemp[ k ] = fvals[ ftempidx ];
+
+            }
+
+            rho = 0;
+            ux = 0;
+            uy = 0;
+
+            for( int k = 0; k < Q9; k++ ) {
+                    
+                rho += ftemp[ k ];
+                ux += ftemp[ k ] * ex[ k ];
+                uy += ftemp[ k ] * ey[ k ];
+
+            }
+
+            ux /= rho;
+            uy /= rho;
+
+            if( j > 0 && j < Ny - 1 ) {
+
+                rt0 = ( 4.0/9.0 )*rho;
+                rt1 = ( 1.0/9.0 )*rho;
+                rt2 = ( 1.0/36.0 )*rho;
+
+                ueqxij = ux + tau*g;
+                ueqyij = uy;
+
+                uxsq = ueqxij * ueqxij;
+                uysq = ueqyij * ueqyij;
+                uxuy5 = ueqxij + ueqyij;
+                uxuy6 = -ueqxij + ueqyij;
+                uxuy7 = -ueqxij -ueqyij;
+                uxuy8 = ueqxij -ueqyij;
+                usq = uxsq + uysq; 
+
+                feq[ 0 ] = rt0*( 1 - f3*usq);
+                feq[ 1 ] = rt1*( 1 + f1*ueqxij + f2*uxsq - f3*usq);
+                feq[ 2 ] = rt1*( 1 + f1*ueqyij + f2*uysq - f3*usq);
+                feq[ 3 ] = rt1*( 1 - f1*ueqxij + f2*uxsq - f3*usq);
+                feq[ 4 ] = rt1*( 1 - f1*ueqyij + f2*uysq - f3*usq);
+                feq[ 5 ] = rt2*( 1 + f1*uxuy5 + f2*uxuy5*uxuy5 - f3*usq);
+                feq[ 6 ] = rt2*( 1 + f1*uxuy6 + f2*uxuy6*uxuy6 - f3*usq);
+                feq[ 7 ] = rt2*( 1 + f1*uxuy7 + f2*uxuy7*uxuy7 - f3*usq);
+                feq[ 8 ] = rt2*( 1 + f1*uxuy8 + f2*uxuy8*uxuy8 - f3*usq);
+
+                for( int k = 0; k < Q9; k++ ) {
+
+                    int fidx = j*Nx*Q9 + i*Q9 + k;
+
+                    fvals[ fidx ] = ftemp[ k ] - ( ftemp[ k ] - feq[ k ] )/tau;
+
+                }
+
+            }
+            else {
+
+                int fidx = j*Nx*Q9 + i*Q9;
+
+                fvals[ fidx + 4 ] = ftemp[ 2 ];
+                fvals[ fidx + 7 ] = ftemp[ 5 ];
+                fvals[ fidx + 8 ] = ftemp[ 6 ];
+
+                fvals[ fidx + 2 ] = ftemp[ 4 ];
+                fvals[ fidx + 5 ] = ftemp[ 7 ];
+                fvals[ fidx + 6 ] = ftemp[ 8 ];
+
+            }
+
+        }
+    }
+}
+
+void performLBMPullIn( double* fvals, double* rho, double* ux, double* uy, double*ex, double* ey, double g, double tau, int szf, int Niter ) {
+
+    int sz = Nx*Ny;
+
+    // double* rhoprev = new double[ sz ];
+    // for( int i = 0; i < sz; i++ ) {
+    //     rhoprev[i] = rho[i];
+    // }
+
+    double error{0.2};
+    double tol{ 1e-20 };
+    int t = 0;
+
+    while( t < Niter ) {
+
+        performLBMStepsPullIn( fvals, ex, ey, tau, g );
+        t += 1;
+    }
+
+    calcMacroscopic( fvals, rho, ux, uy, ex, ey );
+
 }
 
 void calcEqDis( double* feq, double* rho, double* ux, double* uy, double g, double tau ) {
@@ -176,34 +320,14 @@ void applyBC( double* f, double* ftemp ) {
         int fupidx = ( Ny - 1 )*Nx*Q9 + i*Q9;
 
         int flowidx = i*Q9;
-
-        // std::swap( f[ fupidx + 1 ], f[ fupidx + 3 ] );
-        // std::swap( f[ fupidx + 2 ], f[ fupidx + 4 ] );
-        // std::swap( f[ fupidx + 5 ], f[ fupidx + 7 ] );
-        // std::swap( f[ fupidx + 6 ], f[ fupidx + 8 ] );
-
-        // std::swap( f[ flowidx + 1 ], f[ flowidx + 3 ] );
-        // std::swap( f[ flowidx + 2 ], f[ flowidx + 4 ] );
-        // std::swap( f[ flowidx + 5 ], f[ flowidx + 7 ] );
-        // std::swap( f[ flowidx + 6 ], f[ flowidx + 8 ] );
-
-        // f[ fupidx + 1 ] = ftemp[ fupidx + 3 ];
-        // f[ fupidx + 2 ] = ftemp[ fupidx + 4 ];
-        // f[ fupidx + 5 ] = ftemp[ fupidx + 7 ];
-        // f[ fupidx + 6 ] = ftemp[ fupidx + 8 ];
-        // f[ fupidx + 3 ] = ftemp[ fupidx + 1 ];
+        
         f[ fupidx + 4 ] = ftemp[ fupidx + 2 ];
         f[ fupidx + 7 ] = ftemp[ fupidx + 5 ];
         f[ fupidx + 8 ] = ftemp[ fupidx + 6 ];
 
-        // f[ flowidx + 1 ] = ftemp[ flowidx + 3 ];
         f[ flowidx + 2 ] = ftemp[ flowidx + 4 ];
         f[ flowidx + 5 ] = ftemp[ flowidx + 7 ];
         f[ flowidx + 6 ] = ftemp[ flowidx + 8 ];
-        // f[ flowidx + 3 ] = ftemp[ flowidx + 1 ];
-        // f[ flowidx + 4 ] = ftemp[ flowidx + 2 ];
-        // f[ flowidx + 7 ] = ftemp[ flowidx + 5 ];
-        // f[ flowidx + 8 ] = ftemp[ flowidx + 6 ];
 
     }
 
@@ -228,7 +352,7 @@ double calcError( double* val, double* valprev ) {
 
 }
 
-void performLBM( double* fvals, double* rho, double* ux, double* uy, double*ex, double* ey, double g, double tau, int szf, int Niter ) {
+void performLBMPushOut( double* fvals, double* rho, double* ux, double* uy, double*ex, double* ey, double g, double tau, int szf, int Niter ) {
 
     double* ftemp = new double[ szf ];
     std::fill( ftemp, ftemp + szf, 0 );
@@ -249,7 +373,7 @@ void performLBM( double* fvals, double* rho, double* ux, double* uy, double*ex, 
 
     while( t < Niter ) {
 
-        performStream( fvals, ftemp, ex, ey );
+        performStreamPushOut( fvals, ftemp, ex, ey );
         calcMacroscopic( ftemp, rho, ux, uy, ex, ey );
         calcEqDis( feq, rho, ux, uy, g, tau );
         collide( fvals, ftemp, feq, tau );
@@ -257,7 +381,7 @@ void performLBM( double* fvals, double* rho, double* ux, double* uy, double*ex, 
 
         error = calcError( rho, rhoprev );
         std::swap( rhoprev, rho );
-        std::cout << error << "\n";
+        std::cout << error << "\t" << t << "\n";
 
         t += 1;
     }
@@ -356,8 +480,11 @@ int main() {
     int sz = Nx*Ny;
 
     double tau = 1;
-    double g = 0.0001373;
-    double U = 0.0333*1.5;
+    // double g = 0.0001373;
+    // double U = 0.0333*1.5;
+
+    double g = 0.001102;
+    double U = 0.1;
 
     double* fvals = new double[ szf ];
     std::fill( fvals, fvals + szf, 0.001 );
@@ -374,21 +501,15 @@ int main() {
     setInitialVelocity( ux, uy, U );
 
     calcEqDis( fvals, rho, ux, uy, g, tau );
-    
-    double restw = 4.0/9.0;
-    double stw = 1.0/9.0;
-    double diagw = 1.0/36.0;
 
     double* ex = new double[ Q9 ]{ 0, 1, 0, -1, 0, 1, -1, -1, 1 };
     double* ey = new double[ Q9 ]{ 0, 0, 1, 0, -1, 1, 1, -1, -1 };
-    double* w = new double[ Q9 ]{ restw, stw, stw, stw, stw, diagw, diagw, diagw, diagw };
-
-    std::cout << restw << "\t" << stw << "\t" << diagw << "\n";
 
     double c = 1;
-    int Niter = 10000;
+    int Niter = 5000;
 
-    performLBM( fvals, rho, ux, uy, ex, ey, g, tau, szf, Niter );
+    // performLBMPushOut( fvals, rho, ux, uy, ex, ey, g, tau, szf, Niter );
+    performLBMPullIn( fvals, rho, ux, uy, ex, ey, g, tau, szf, Niter );
 
     printu( ux, uy, "velocity.txt" );
     printval( rho, "rho.txt" );
