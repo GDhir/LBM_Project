@@ -1,5 +1,6 @@
 # Prerequisites
 *.d
+*.txt
 
 # Compiled Object files
 *.slo
@@ -33,4 +34,5 @@
 
 # ignore folders
 build/
+images/
 *.log
