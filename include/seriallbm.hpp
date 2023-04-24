@@ -7,20 +7,15 @@
 #include <cstring>
 #include <algorithm>
 #include <math.h>
-
-#define Q9 9
-#define dim 2
-
-constexpr int Ny = 12;
-constexpr int Nx = 100;
+#include "utils.hpp"
 
 void calcMacroscopic(double *fvals, double *rho, double *ux, double *uy, double *ex, double *ey);
 
 void performStreamPushOut(double *fvals, double *ftemp, double *ex, double *ey);
 
-void performLBMStepsPullIn(double *fvals, double *ex, double *ey, double tau, double g);
+void performLBMStepsPullIn(double *fvals, double *fvalsprev, double *feq, double *ex, double *ey, double tau, double g);
 
-void performLBMPullIn(double *fvals, double *rho, double *ux, double *uy, double *ex, double *ey, double g, double tau, int szf, int Niter);
+void performLBMPullIn(double *fvals,  double *fvalsprev, double *feq, double *rho, double *ux, double *uy, double* uxprev, double* uyprev, double *ex, double *ey, double g, double tau, int szf, int Niter, double tol);
 
 void calcEqDis(double *feq, double *rho, double *ux, double *uy, double g, double tau);
 
