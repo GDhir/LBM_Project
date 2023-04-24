@@ -256,7 +256,7 @@ void latticeBoltzmannMethod() {
 
     printf("\r\nError %e\n", error(velocity2_, velocity1_));
     auto time = double(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count())/1.e9;
-    printf("MLUPS %f, %fs\n", double(ITERS*NX*NY)/time, time);
+    printf("MLUPS %f, %fs\n", double(ITERS*NX*NY)/(time*1.e6), time);
     fflush(stdout);
     save(0);
 }
