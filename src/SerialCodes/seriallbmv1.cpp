@@ -83,7 +83,7 @@ void performStreamPushOut(double *fvals, double *ftemp, double *ex, double *ey)
 
 // Pull In Code
 
-void performLBMStepsPullIn(double *fvals, double *ex, double *ey, double tau, double g)
+void performLBMStepsPullIn(double *fvals, double* fvalsprev, double *feq, double *ex, double *ey, double tau, double g)
 {
 
     double f1 = 3.0;
@@ -104,12 +104,6 @@ void performLBMStepsPullIn(double *fvals, double *ex, double *ey, double tau, do
     double uxuy8{0};
     double usq{0};
 
-    double *ftemp = new double[Q9];
-    std::fill(ftemp, ftemp + Q9, 0);
-
-    double *feq = new double[Q9];
-    std::fill(feq, feq + Q9, 0);
-
     double rho, ux, uy;
 
     for (int j = 0; j < Ny; j++)
@@ -118,6 +112,7 @@ void performLBMStepsPullIn(double *fvals, double *ex, double *ey, double tau, do
         {
 
             int idx = j * Nx + i;
+            int fidx = idx*Q9;
 
             for (int k = 0; k < Q9; k++)
             {
@@ -148,7 +143,7 @@ void performLBMStepsPullIn(double *fvals, double *ex, double *ey, double tau, do
 
                 int ftempidx = tempj * Nx * Q9 + tempi * Q9 + k;
 
-                ftemp[k] = fvals[ftempidx];
+                fvals[fidx + k] = fvalsprev[ftempidx];
             }
 
             rho = 0;
@@ -158,9 +153,9 @@ void performLBMStepsPullIn(double *fvals, double *ex, double *ey, double tau, do
             for (int k = 0; k < Q9; k++)
             {
 
-                rho += ftemp[k];
-                ux += ftemp[k] * ex[k];
-                uy += ftemp[k] * ey[k];
+                rho += fvals[fidx + k];
+                ux += fvals[fidx + k] * ex[k];
+                uy += fvals[fidx + k] * ey[k];
             }
 
             ux /= rho;
@@ -196,51 +191,41 @@ void performLBMStepsPullIn(double *fvals, double *ex, double *ey, double tau, do
 
                 for (int k = 0; k < Q9; k++)
                 {
-
-                    int fidx = j * Nx * Q9 + i * Q9 + k;
-
-                    fvals[fidx] = ftemp[k] - (ftemp[k] - feq[k]) / tau;
+                    fvals[fidx + k] = fvals[fidx + k] - (fvals[fidx + k] - feq[k]) / tau;
                 }
             }
             else
             {
+                double temp;
 
-                int fidx = j * Nx * Q9 + i * Q9;
+                temp = fvals[fidx + 2];
+                fvals[fidx + 2] = fvals[fidx + 4];
+                fvals[fidx + 4] = temp;
 
-                fvals[fidx + 4] = ftemp[2];
-                fvals[fidx + 7] = ftemp[5];
-                fvals[fidx + 8] = ftemp[6];
+                temp = fvals[fidx + 7];
+                fvals[fidx + 7] = fvals[fidx + 5];
+                fvals[fidx + 5] = temp;
 
-                fvals[fidx + 2] = ftemp[4];
-                fvals[fidx + 5] = ftemp[7];
-                fvals[fidx + 6] = ftemp[8];
+                temp = fvals[fidx + 8];
+                fvals[fidx + 8] = fvals[fidx + 6];
+                fvals[fidx + 6] = temp;
+
             }
         }
     }
 }
 
-void performLBMPullIn(double *fvals, double *rho, double *ux, double *uy, double *ex, double *ey, double g, double tau, int szf, int Niter)
+void performLBMPullIn(double *fvals,  double *fvalsprev, double *feq, double *rho, double *ux, double *uy, double *ex, double *ey, double g, double tau, int szf, int Niter)
 {
 
-    int sz = Nx * Ny;
-
-    // double* rhoprev = new double[ sz ];
-    // for( int i = 0; i < sz; i++ ) {
-    //     rhoprev[i] = rho[i];
-    // }
-
-    double error{0.2};
-    double tol{1e-20};
     int t = 0;
 
     while (t < Niter)
     {
-
-        performLBMStepsPullIn(fvals, ex, ey, tau, g);
+        performLBMStepsPullIn(fvals, fvalsprev, feq, ex, ey, tau, g);
+        // std::swap( fvalsprev, fvals );
         t += 1;
     }
-
-    calcMacroscopic(fvals, rho, ux, uy, ex, ey);
 }
 
 void calcEqDis(double *feq, double *rho, double *ux, double *uy, double g, double tau)
@@ -360,6 +345,8 @@ double calcError(double *val, double *valprev)
     }
 
     error = std::sqrt(error);
+
+    return error;
 }
 
 void performLBMPushOut(double *fvals, double *rho, double *ux, double *uy, double *ex, double *ey, double g, double tau, int szf, int Niter)
