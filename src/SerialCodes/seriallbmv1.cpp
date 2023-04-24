@@ -215,16 +215,27 @@ void performLBMStepsPullIn(double *fvals, double* fvalsprev, double *feq, double
     }
 }
 
-void performLBMPullIn(double *fvals,  double *fvalsprev, double *feq, double *rho, double *ux, double *uy, double *ex, double *ey, double g, double tau, int szf, int Niter)
+void performLBMPullIn(double *fvals,  double *fvalsprev, double *feq, double *rho, double *ux, double *uy, double* uxprev, double* uyprev, double *ex, double *ey, double g, double tau, int szf, int Niter, double tol)
 {
 
     int t = 0;
+    // double error = 1e6;
 
     while (t < Niter)
     {
         performLBMStepsPullIn(fvals, fvalsprev, feq, ex, ey, tau, g);
+        calcMacroscopic( fvals, rho, ux, uy, ex, ey );
+        // error = calcVelError( ux, uy, uxprev, uyprev, tol );
         // std::swap( fvalsprev, fvals );
         t += 1;
+        // std::swap( ux, uxprev );
+        // std::swap( uy, uyprev );
+
+        // std::cout << error << "\t" << "Iteration = \t" << t << "\n";
+
+        // if( error > tol )
+        if( t < Niter )
+            std::swap( fvals, fvalsprev );
     }
 }
 
