@@ -187,6 +187,8 @@ int main() {
   printval(rhod, "rhodevice.txt");
   printf(fvalsd, "fvalsdevice.txt");
 
+  // std::string filenameval = "timecalcNx=" + std::to_string(Nx) + "Ny=" + std::to_string(Ny) + ".txt";
+
   std::ofstream fileval( "timecalc.txt" );
 
   fileval << seq_time << "\n";
