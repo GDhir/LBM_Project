@@ -18,13 +18,20 @@
 //   7    4    8
 //
 
+#ifdef SINGLE_PRECISION
+using Float = float;
+using Vec2  = float2;
+#else
 using Float = double;
 using Vec2 = double2;
-//using Float = float;
-//using Vec2  = float2;
+#endif
 
+#ifndef NX
 constexpr int32_t NX            = 128;
+#endif
+#ifndef NY
 constexpr int32_t NY            = 128;
+#endif
 //constexpr int32_t D             = 2;
 constexpr int32_t Q             = 9;
 __constant__ Float WEIGHTS[]    = {4./9, 1./9, 1./9, 1./9, 1./9, 1./36, 1./36, 1./36, 1./36};
@@ -34,7 +41,7 @@ constexpr Float RHO0            = 1.;
 constexpr Float LID_VELOCITY    = .1;
 constexpr Float REYNOLDS_NUMBER = 1000.;
 constexpr Float tau_            = 3.f*(LID_VELOCITY*1.*Float(NX)/REYNOLDS_NUMBER)+.5f;
-constexpr int32_t ITERS         = 40000;
+constexpr int32_t STEPS         = 40000;
 
 template<typename T>
 constexpr T sqr(const T val) { return val*val; }
@@ -46,7 +53,6 @@ constexpr T sqr(const T val) { return val*val; }
 #define NX_SIZE  (NX+2)
 #define NY_SIZE  (NY+2)
 
-//Float   tau_       = 0.;
 Float *pDf1_       = nullptr;
 Float *pDf2_       = nullptr;
 Float *pDensity_   = nullptr;
@@ -221,7 +227,10 @@ void save(Vec2 velocity[NX_SIZE][NY_SIZE]) {
     fflush(pDatFile);
     fclose(pDatFile);
 #else
-    FILE *pDatFile = fopen("cuda_lbm_lid_cavity.pydat", "w");
+    char fileName[256];
+    memset(fileName, 0, sizeof(fileName));
+    sprintf(fileName, "cuda_lbm_lid_cavity_%dx%d.pydat", NX, NY);
+    FILE *pDatFile = fopen(fileName, "w");
     fprintf(pDatFile, "%d %d\n", NX, NY);
     for(int32_t x = xStart; x < xEnd; ++x) {
         for(int32_t y = yStart; y < yEnd; ++y) {
@@ -236,6 +245,10 @@ void save(Vec2 velocity[NX_SIZE][NY_SIZE]) {
     fflush(pDatFile);
     fclose(pDatFile);
 #endif
+}
+
+double calculateMLUPS(double nx, double ny, double steps, double time) {
+    return (nx*ny*steps)/(time*1.e6);
 }
 
 void latticeBoltzmannMethod() {
@@ -289,7 +302,7 @@ void latticeBoltzmannMethod() {
     const dim3 gridXSYS = {uint32_t(std::ceil(Float(NX_SIZE)/Float(block.x))), uint32_t(std::ceil(Float(NY_SIZE)/Float(block.y))), 1};
 
     auto start = std::chrono::high_resolution_clock::now();
-    for(int32_t step = 0; step < ITERS ; ++step) {
+    for(int32_t step = 0; step < STEPS ; ++step) {
         collisionKernel<<<gridXY, block>>>(pDf1_, pDf2_, pDensity_, pVelocity1_);
         calculateMacroscopicPropertiesKernel<<<gridXY, block>>>(pDf2_, pDensity_, pVelocity2_);
         boundaryConditionKernel1<<<gridXY.y, block.y>>>(pDf2_, pDensity_, pVelocity2_);
@@ -299,7 +312,7 @@ void latticeBoltzmannMethod() {
     }
     auto end = std::chrono::high_resolution_clock::now();
     auto time = double(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count())/1.e9;
-    printf("MLUPS %f, %fs\n", double(ITERS*NX*NY)/(time*1.e6), time);
+    printf("MLUPS %f, %fs\n", calculateMLUPS(NX, NY, STEPS, time), time);
 
     Vec2 vel[NX_SIZE][NY_SIZE];
     cudaMemcpy(vel, pVelocity2_, NX_SIZE*NY_SIZE*sizeof(Vec2), cudaMemcpyKind::cudaMemcpyDeviceToHost);
