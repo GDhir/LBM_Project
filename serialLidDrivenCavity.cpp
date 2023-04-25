@@ -41,8 +41,11 @@
 //   7    4    8
 //
 
+#ifdef SINGLE_PRECISION
+using Float = float;
+#else
 using Float = double;
-//using Float = float;
+#endif
 
 // Add ghost cells to the grid, hence the +2
 template<int32_t DimX, int32_t DimY, typename T = Float>
