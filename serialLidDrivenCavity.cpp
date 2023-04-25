@@ -84,7 +84,7 @@ Grid<NX, NY, Float>    density_   = {};
  * Output tecplot file or 2D matrix
  * @param step
  */
-void save(int32_t step) {
+void save() {
 #ifdef TECPLOT
     FILE *pDatFile = fopen(("lbm_lid_cavity_" + std::to_string(step) + ".dat").c_str(), "w");
     fprintf(pDatFile, "Title= \"LBM Lid Driven Flow\"\n");
@@ -98,7 +98,7 @@ void save(int32_t step) {
     fflush(pDatFile);
     fclose(pDatFile);
 #else
-    FILE *pDatFile = fopen(("lbm_lid_cavity_" + std::to_string(step) + ".pydat").c_str(), "w");
+    FILE *pDatFile = fopen("serial_lbm_lid_cavity.pydat", "w");
     fprintf(pDatFile, "%d %d\n", NX, NY);
     for(int32_t x = xStart; x < xEnd; ++x) {
         for(int32_t y = yStart; y < yEnd; ++y) {
@@ -258,7 +258,7 @@ void latticeBoltzmannMethod() {
     auto time = double(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count())/1.e9;
     printf("MLUPS %f, %fs\n", double(ITERS*NX*NY)/(time*1.e6), time);
     fflush(stdout);
-    save(0);
+    save();
 }
 
 int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
