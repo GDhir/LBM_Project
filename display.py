@@ -7,8 +7,9 @@ if len(sys.argv) != 2 or not os.path.isfile(sys.argv[1]):
     raise "Usage\npython3 display.py <filename>"
 
 Z = None
+fileName = sys.argv[1].strip()
 
-with open(sys.argv[1], 'r') as file:
+with open(fileName, 'r') as file:
     line = file.readline()
     NX, NY = map(int, line.strip().split(' '))
     Z = np.zeros((NX, NY))
@@ -24,9 +25,8 @@ Z = Z.T
 # plots filled contour plot
 fig, ax = plt.subplots(1, 1)
 color_bar = ax.contourf(X, Y, Z, levels=24)
-ax.set_title('Lid Driven Cavity (Serial) Velocity Distribution')
+ax.set_title('Lid Driven Cavity-Velocity Distribution')
 ax.set_xlabel('X')
 ax.set_ylabel('Y')
 plt.colorbar(color_bar)
-plt.savefig('serial_lid_driven_cavity.png')
-plt.show()
+plt.savefig(sys.argv[1].strip().split('.')[-2].strip('/') + '.png')
