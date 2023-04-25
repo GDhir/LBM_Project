@@ -89,6 +89,13 @@ __global__ void init2(Float *pDf, Float *pDensity, Vec2 *pVelocity) {
     }
 }
 
+/**
+ * Streams (pull) and apply collision operator
+ * @param pSrc grid distribution function
+ * @param pDst grid distribution function
+ * @param pDensity grid fluid density
+ * @param pVelocity grid fluid velocity
+ */
 __global__ void collisionKernel(Float *pSrc /**[9][NX+2][NY+2]**/, Float *pDst /**[9][NX+2][NY+2]**/, Float *pDensity /**[NX+2][NY+2]**/, Vec2 *pVelocity /**[NX+2][NY+2]**/) {
     uint32_t x = xStart + blockIdx.y * blockDim.y + threadIdx.y;
     uint32_t y = yStart + blockIdx.x * blockDim.x + threadIdx.x;
@@ -106,6 +113,12 @@ __global__ void collisionKernel(Float *pSrc /**[9][NX+2][NY+2]**/, Float *pDst /
     }
 }
 
+/**
+ * Calculate Macroscopic Properties like density and velocity
+ * @param pDf grid distribution function
+ * @param pDensity grid fluid density
+ * @param pVelocity grid fluid velocity
+ */
 __global__ void calculateMacroscopicPropertiesKernel(Float *pDf /**[9][NX+2][NY+2]**/, Float *pDensity /**[NX+2][NY+2]**/, Vec2 *pVelocity /**[NX+2][NY+2]**/) {
     uint32_t x = xStart + blockIdx.y * blockDim.y + threadIdx.y;
     uint32_t y = yStart + blockIdx.x * blockDim.x + threadIdx.x;
