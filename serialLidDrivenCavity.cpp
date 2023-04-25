@@ -56,8 +56,12 @@ struct Vec2 {
     Float y;
 };
 
+#ifndef NX
 constexpr int32_t NX            = 128;
+#endif
+#ifndef NY
 constexpr int32_t NY            = 128;
+#endif
 constexpr int32_t D             = 2;
 constexpr int32_t Q             = 9;
 constexpr Float WEIGHTS[]       = {4./9, 1./9, 1./9, 1./9, 1./9, 1./36, 1./36, 1./36, 1./36};
