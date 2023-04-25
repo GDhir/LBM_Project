@@ -325,8 +325,6 @@ void latticeBoltzmannMethod() {
     cudaError(cudaFree((void*)pVelocity2_));
 }
 
-
-
 int main(int argc, char *argv[]) {
     cudaSetDevice(3);
     latticeBoltzmannMethod();
