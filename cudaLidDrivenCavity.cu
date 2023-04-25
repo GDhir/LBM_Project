@@ -64,14 +64,17 @@ __global__ void init1(Float *pDensity, Vec2 *pVelocity1, Vec2 *pVelocity2) {
     uint32_t y = blockIdx.x * blockDim.x + threadIdx.x;
     if(NX_SIZE <= x or NY_SIZE <= y) return;
 
-    pDensity[x*NY_SIZE + y]        = RHO0;
+    uint32_t xy = x*NY_SIZE + y;
 
-    pVelocity1[x*NY_SIZE + y].x    = 0;
-    pVelocity1[x*NY_SIZE + y].y    = 0;
+    // intialize values
+    pDensity[xy]                   = RHO0;
+
+    pVelocity1[xy].x               = 0;
+    pVelocity1[xy].y               = 0;
     pVelocity1[x*NY_SIZE + yEnd].x = LID_VELOCITY;
 
-    pVelocity2[x*NY_SIZE + y].x    = 0;
-    pVelocity2[x*NY_SIZE + y].y    = 0;
+    pVelocity2[xy].x               = 0;
+    pVelocity2[xy].y               = 0;
 }
 
 __global__ void init2(Float *pDf, Float *pDensity, Vec2 *pVelocity) {
