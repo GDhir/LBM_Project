@@ -161,10 +161,8 @@ __global__ void boundaryConditionKernel1(Float *pDf /**[9][NX+2][NY+2]**/, Float
  * @param pVelocity grid fluid velocity
  */
 __global__ void boundaryConditionKernel2(Float *pDf /**[9][NX+2][NY+2]**/, Float *pDensity /**[NX+2][NY+2]**/, Vec2 *pVelocity /**[NX+2][NY+2]**/) {
-//    uint32_t x = blockIdx.x * blockDim.x + threadIdx.x;
-//    if(NX_SIZE <= x) return;
-    uint32_t x = xStart + blockIdx.x * blockDim.x + threadIdx.x;
-    if(xEnd <= x) return;
+    uint32_t x = blockIdx.x * blockDim.x + threadIdx.x;
+    if(NX_SIZE <= x) return;
 
     uint32_t bottomGhostXy     = x*NY_SIZE + 0;
     uint32_t bottomBoundaryXy  = bottomGhostXy + 1;
@@ -274,12 +272,15 @@ void lbm() {
     }
 #endif
 
+    const dim3 gridXY   = {uint32_t(std::ceil(Float(NX)/Float(block.x))), uint32_t(std::ceil(Float(NY)/Float(block.y))), 1};
+    const dim3 gridXSYS = {uint32_t(std::ceil(Float(NX_SIZE)/Float(block.x))), uint32_t(std::ceil(Float(NY_SIZE)/Float(block.y))), 1};
+
     auto start = std::chrono::high_resolution_clock::now();
     for(int32_t step = 0; step < ITERS ; ++step) {
-        collisionKernel<<<dim3{NX/32, NY/32, 1}, dim3{32, 32, 1}>>>(pDf1_, pDf2_, pDensity_, pVelocity1_);
-        calculateMacroscopicPropertiesKernel<<<dim3{NX/32, NY/32, 1}, dim3{32, 32, 1}>>>(pDf2_, pDensity_, pVelocity2_);
-        boundaryConditionKernel1<<<NY/32, 32>>>(pDf2_, pDensity_, pVelocity2_);
-        boundaryConditionKernel2<<<NX/32, 32>>>(pDf2_, pDensity_, pVelocity2_);
+        collisionKernel<<<gridXY, block>>>(pDf1_, pDf2_, pDensity_, pVelocity1_);
+        calculateMacroscopicPropertiesKernel<<<gridXY, block>>>(pDf2_, pDensity_, pVelocity2_);
+        boundaryConditionKernel1<<<gridXY.y, block.y>>>(pDf2_, pDensity_, pVelocity2_);
+        boundaryConditionKernel2<<<gridXSYS.x, block.x>>>(pDf2_, pDensity_, pVelocity2_);
         std::swap(pDf1_, pDf2_);
         std::swap(pVelocity1_, pVelocity2_);
     }
