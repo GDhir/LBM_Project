@@ -188,8 +188,6 @@ __global__ void boundaryConditionKernel2(Float *pDf /**[9][NX+2][NY+2]**/, Float
     }
 }
 
-
-
 void cudaError_(cudaError_t error, const char *pFile, const int32_t lineNo) {
     if(error == cudaError::cudaSuccess) return;
     printf("[ERROR][CUDA] %s:%d %s\n", pFile, lineNo, cudaGetErrorString(error));
@@ -210,7 +208,7 @@ void save(Vec2 velocity[NX_SIZE][NY_SIZE]) {
     fflush(pDatFile);
     fclose(pDatFile);
 #else
-    FILE *pDatFile = fopen("lbm_lid_cavity.pydat", "w");
+    FILE *pDatFile = fopen("cuda_lbm_lid_cavity.pydat", "w");
     fprintf(pDatFile, "%d %d\n", NX, NY);
     for(int32_t x = xStart; x < xEnd; ++x) {
         for(int32_t y = yStart; y < yEnd; ++y) {
@@ -227,8 +225,7 @@ void save(Vec2 velocity[NX_SIZE][NY_SIZE]) {
 #endif
 }
 
-
-void lbm() {
+void latticeBoltzmannMethod() {
     cudaError(cudaMalloc(&pDf1_, Q*NX_SIZE*NY_SIZE*sizeof(Float)));
     cudaError(cudaMalloc(&pDf2_, Q*NX_SIZE*NY_SIZE*sizeof(Float)));
     cudaError(cudaMalloc(&pDensity_, NX_SIZE*NY_SIZE*sizeof(Float)));
@@ -306,7 +303,7 @@ void lbm() {
 
 int main(int argc, char *argv[]) {
     cudaSetDevice(3);
-    lbm();
+    latticeBoltzmannMethod();
 
     return 0;
 }
