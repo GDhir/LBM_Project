@@ -56,7 +56,7 @@ Vec2  *pVelocity2_ = nullptr;
 __device__ Float feq(const int32_t q, const Float density, const Vec2 vel) {
     Float cv = Float(CX[q])*vel.x + Float(CY[q])*vel.y;
     Float vv = vel.x*vel.x + vel.y*vel.y;
-    return WEIGHTS[q] * density * (1.f + 3.f*cv + 4.5f*cv*cv - 1.5f*vv);
+    return WEIGHTS[q] * density * (1. + 3.f*cv + 4.5f*cv*cv - 1.5f*vv);
 }
 
 __global__ void init1(Float *pDensity, Vec2 *pVelocity1, Vec2 *pVelocity2) {
