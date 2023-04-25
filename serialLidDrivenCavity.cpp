@@ -63,7 +63,7 @@ constexpr int8_t CY[]           = {   0,    0,    1,    0,   -1,     1,     1,  
 constexpr Float RHO0            = 1.;
 constexpr Float LID_VELOCITY    = .1;
 constexpr Float REYNOLDS_NUMBER = 1000.;
-constexpr int32_t ITERS         = 40000;
+constexpr int32_t STEPS         = 40000;
 
 template<typename T>
 constexpr T sqr(const T val) { return val*val; }
@@ -241,7 +241,7 @@ void applyBoundaryCondition(Grid<NX, NY, Float[Q]> &df, Grid<NX, NY, Float> &den
 void latticeBoltzmannMethod() {
     init();
     auto start = std::chrono::high_resolution_clock::now();
-    for(int32_t step = 0; step < ITERS; ++step) {
+    for(int32_t step = 0; step < STEPS; ++step) {
         collisionStep(df1_, df2_, density_, velocity1_);
         calculateMacroscopicProperties(df2_, density_, velocity2_);
         applyBoundaryCondition(df2_, density_, velocity2_);
@@ -256,7 +256,7 @@ void latticeBoltzmannMethod() {
 
     printf("\r\nError %e\n", error(velocity2_, velocity1_));
     auto time = double(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count())/1.e9;
-    printf("MLUPS %f, %fs\n", double(ITERS*NX*NY)/(time*1.e6), time);
+    printf("MLUPS %f, %fs\n", double(STEPS*NX*NY)/(time*1.e6), time);
     fflush(stdout);
     save();
 }
