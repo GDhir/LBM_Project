@@ -182,7 +182,7 @@ def problemSizeBench( root_dir, folderName, Nxvals, Nyvals ):
     print( pardata )
     print( speedup )  
 
-def AOSvsSOA( root_dir ):
+def compareOptions( root_dir, options ):
 
     # Nxvals = [ 512, 1024, 2048, 4096, 8192 ]
     # Nyvals = [ 16, 32, 64, 128, 256 ]
@@ -193,10 +193,10 @@ def AOSvsSOA( root_dir ):
     Nxvals = [ 512, 1024, 2048, 4096, 8192 ]
     Nyvals = [ 256 ]
 
-    problemSizeBench( root_dir, "AOS", Nxvals, Nyvals )
-    problemSizeBench( root_dir, "SOA", Nxvals, Nyvals )
+    # problemSizeBench( root_dir, "AOS", Nxvals, Nyvals )
+    # problemSizeBench( root_dir, "SOA", Nxvals, Nyvals )
 
-    options = ["SOA", "AOS"]
+    # options = ["SOA", "AOS"]
 
     alldata = []
     speedupdata = []
@@ -206,6 +206,8 @@ def AOSvsSOA( root_dir ):
     plt.figure()
 
     for idx, opt in enumerate( options ):
+
+        problemSizeBench( root_dir, opt, Nxvals, Nyvals )
 
         perfdata = []
 
@@ -230,16 +232,17 @@ def AOSvsSOA( root_dir ):
         plt.xlabel( "Number of Nodes in X Dimension $(N_x)$" )
         plt.ylabel( "Time" )
     
+    fignameprefix = options[0] + "vs" + options[1]
+
     plt.legend()
-    plt.savefig( dirval + "AOSvsSOA_Time.png" )
+    plt.savefig( dirval + fignameprefix + "_Time.png" )
 
     plt.figure()
     plt.plot( Nxvals, speedupdata, "-o" )
     plt.xlabel( "Number of Nodes in X Dimension $(N_x)$" )
-    plt.ylabel( "SpeedUp = AOS Time/SOA Time" )
-    plt.savefig( dirval + "AOSvsSOA_Speedup.png" )
+    plt.ylabel( "SpeedUp" )
+    plt.savefig( dirval + fignameprefix + "_Speedup.png" )
 
-   
 
 if __name__ == "__main__":
 
@@ -255,7 +258,8 @@ if __name__ == "__main__":
 
     # problemSizeBench( root_dir, "AOS" )
 
-    AOSvsSOA( root_dir )
+    options = ["SM", "SOA"]
+    compareOptions( root_dir, options )
 
     # import matplotlib
 
