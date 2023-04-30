@@ -60,12 +60,12 @@ def plotvelocity( filename, filenameprefix ):
         plt.colorbar()
         plt.savefig( filenameprefix + "plotcontourf_pullin.png" )
 
-def runSim( root_dir, outfile ):
+def runSim( root_dir, outfile, inargs ):
 
     build_dir = root_dir + "/build"
 
     compile_cmdlist = ["make"]
-    cmdlist = ["./lbm-gpu"]
+    cmdlist = ["./lbm-gpu", inargs]
 
     open(outfile, 'w').close()
 
@@ -73,11 +73,11 @@ def runSim( root_dir, outfile ):
 
     subprocess.run(cmdlist, stdout=open(outfile, 'a'), stderr=open(outfile, 'a'), cwd=build_dir  )
 
-def getPerfData( root_dir ):
+def getPerfData( fileval ):
 
-    build_dir = root_dir + "/TextFiles"
+    # build_dir = root_dir + "/TextFiles"
 
-    fileval = build_dir + "/timecalc_SOA.txt"
+    # fileval = build_dir + "/timecalc_SOA.txt"
 
     seqdata = 0
     pardata = 0
@@ -93,13 +93,34 @@ def getPerfData( root_dir ):
 
     return ( seqdata, pardata, speedup )
 
-def problemSizeBench( root_dir ):
+def plotPerfDataContourScatter( root_dir, folderName, Nxscatter, Nyscatter, speedup, Nxvals, Nyvals ):
 
-    Nxvals = [ 512, 1024, 2048, 4096, 8192 ]
-    Nyvals = [ 16, 32, 64, 128, 256 ]
+    fullfileprefix = root_dir + "PlotFiles/" + folderName + "/"
 
-    # Nxvals = [2048, 4096, 8192 ]
-    # Nyvals = [64, 128, 256 ]
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
+    ax.scatter3D(Nxscatter, Nyscatter, speedup)
+    ax.set_xlabel('Nx')
+    ax.set_ylabel('Ny')
+    ax.set_zlabel('SpeedUp')
+    plt.savefig( fullfileprefix + "speedupplot.png" )
+    plt.show()
+
+    X, Y = np.meshgrid(Nxvals, Nyvals)
+
+    speedupnp = np.array( speedup )
+    speedupnp = np.reshape( speedupnp, (len(Nxvals), len(Nyvals)) )
+
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
+    ax.contour3D(X, Y, speedupnp, 50)
+    ax.set_xlabel('Nx')
+    ax.set_ylabel('Ny')
+    ax.set_zlabel('Speedup')
+    plt.savefig( fullfileprefix + "speedupcontour.png" )
+    plt.show()
+
+def problemSizeBench( root_dir, folderName, Nxvals, Nyvals ):
 
     Nxscatter = []
     Nyscatter = []
@@ -107,7 +128,7 @@ def problemSizeBench( root_dir ):
     # Nxvals = [4096]
     # Nyvals = [128]
 
-    utilsfile = root_dir + "/include/utils.hpp"
+    utilsfile = root_dir + "include/utils.hpp"
     fullfile = []
 
     seqdata = []
@@ -142,44 +163,83 @@ def problemSizeBench( root_dir ):
             with open( utilsfile, "w" ) as fval:
                 fval.writelines(fullfile)
 
-            outfile = "out" + "Nx=" + str(Nx) + "Ny=" + str(Ny) + ".txt"
-            runSim( root_dir, outfile )
+            outfile = root_dir + "build/txt/" + "out" + "Nx=" + str(Nx) + "Ny=" + str(Ny) + ".txt"
+            runSim( root_dir, outfile, folderName )
 
-            seqtime, partime, speedupval = getPerfData( root_dir )
+            build_dir = root_dir + "/TextFiles/" + folderName + "/"
+
+            fileval = build_dir + "timecalc" + "Nx=" + str(Nx) + "Ny=" + str(Ny) + ".txt"
+
+            seqtime, partime, speedupval = getPerfData( fileval )
 
             seqdata.append( seqtime )
             pardata.append( partime )
             speedup.append( speedupval )
 
-    fullfileprefix = root_dir + "PlotFiles/SOA_"
-
-    fig = plt.figure()
-    ax = plt.axes(projection='3d')
-    ax.scatter3D(Nxscatter, Nyscatter, speedup)
-    ax.set_xlabel('Nx')
-    ax.set_ylabel('Ny')
-    ax.set_zlabel('SpeedUp')
-    plt.savefig( fullfileprefix + "speedupplot.png" )
-    plt.show()
-
-    X, Y = np.meshgrid(Nxvals, Nyvals)
-
-    speedupnp = np.array( speedup )
-    speedupnp = np.reshape( speedupnp, (len(Nxvals), len(Nyvals)) )
-
-    fig = plt.figure()
-    ax = plt.axes(projection='3d')
-    ax.contour3D(X, Y, speedupnp, 50)
-    ax.set_xlabel('Nx')
-    ax.set_ylabel('Ny')
-    ax.set_zlabel('Speedup')
-    plt.savefig( fullfileprefix + "speedupcontour.png" )
-    plt.show()
+    # plotPerfDataContourScatter( root_dir, folderName, Nxscatter, Nyscatter, speedup, Nxvals, Nyvals )
 
     print( seqdata )
     print( pardata )
     print( speedup )  
 
+def AOSvsSOA( root_dir ):
+
+    # Nxvals = [ 512, 1024, 2048, 4096, 8192 ]
+    # Nyvals = [ 16, 32, 64, 128, 256 ]
+
+    # Nxvals = [2048, 4096, 8192 ]
+    # Nyvals = [64, 128, 256 ]
+
+    Nxvals = [ 512, 1024, 2048, 4096, 8192 ]
+    Nyvals = [ 256 ]
+
+    problemSizeBench( root_dir, "AOS", Nxvals, Nyvals )
+    problemSizeBench( root_dir, "SOA", Nxvals, Nyvals )
+
+    options = ["SOA", "AOS"]
+
+    alldata = []
+    speedupdata = []
+
+    dirval = root_dir + "PlotFiles/"
+
+    plt.figure()
+
+    for idx, opt in enumerate( options ):
+
+        perfdata = []
+
+        for Nx in Nxvals:
+            for Ny in Nyvals:
+
+                build_dir = root_dir + "/TextFiles/" + opt + "/"
+
+                fileval = build_dir + "timecalc" + "Nx=" + str(Nx) + "Ny=" + str(Ny) + ".txt"
+
+                _, partime,_ = getPerfData( fileval )
+
+                perfdata.append( partime )
+
+        alldata.append( perfdata )
+
+        if idx > 0:
+            for j, timeval in enumerate( alldata[idx] ):
+                speedupdata.append( timeval/alldata[0][j] )
+
+        plt.plot( Nxvals, alldata[idx], "-o", label = opt )
+        plt.xlabel( "Number of Nodes in X Dimension $(N_x)$" )
+        plt.ylabel( "Time" )
+    
+    plt.legend()
+    plt.savefig( dirval + "AOSvsSOA_Time.png" )
+
+    plt.figure()
+    plt.plot( Nxvals, speedupdata, "-o" )
+    plt.xlabel( "Number of Nodes in X Dimension $(N_x)$" )
+    plt.ylabel( "SpeedUp = AOS Time/SOA Time" )
+    plt.savefig( dirval + "AOSvsSOA_Speedup.png" )
+
+   
 
 if __name__ == "__main__":
 
@@ -193,7 +253,9 @@ if __name__ == "__main__":
     # plotvelocity( root_dir + "TextFiles/velocity_SOA.txt", root_dir + "PlotFiles/host_SOA" )
     # plotvelocity( root_dir + "TextFiles/velocitydevice_SOA.txt", root_dir + "PlotFiles/device_SOA" )
 
-    problemSizeBench( root_dir )
+    # problemSizeBench( root_dir, "AOS" )
+
+    AOSvsSOA( root_dir )
 
     # import matplotlib
 

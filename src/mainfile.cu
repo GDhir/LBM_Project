@@ -189,7 +189,7 @@ void analyze_AOS( int sz, int szf, double tau, double g, double U ) {
 
   accuracyTest(ux, uy, uxd, uyd, sz);
 
-  std::string fullfiledir = root_dir + "TextFiles/";
+  std::string fullfiledir = root_dir + "TextFiles/AOS/";
 
   // printu(ux, uy,fullfiledir + "velocity_AOS.txt");
   // printval(rho, fullfiledir + "rho_AOS.txt");
@@ -199,9 +199,9 @@ void analyze_AOS( int sz, int szf, double tau, double g, double U ) {
   // printval(rhod, fullfiledir + "rhodevice_AOS.txt");
   // printf(fvalsd, fullfiledir + "fvalsdevice_AOS.txt");
 
-  // std::string filenameval = "timecalcNx=" + std::to_string(Nx) + "Ny=" + std::to_string(Ny) + ".txt";
+  std::string filenameval = fullfiledir + "timecalcNx=" + std::to_string(Nx) + "Ny=" + std::to_string(Ny) + ".txt";
 
-  std::ofstream fileval( fullfiledir + "timecalc_AOS.txt" );
+  std::ofstream fileval( filenameval );
 
   fileval << seq_time << "\n";
   fileval << par_time << "\n";
@@ -210,9 +210,9 @@ void analyze_AOS( int sz, int szf, double tau, double g, double U ) {
   double seqmlups = sz*Niter*1.0/std::pow( 10, 6 )/seq_time;
   double parmlups = sz*Niter*1.0/std::pow( 10, 6 )/par_time;
 
-  // fileval << seqmlups << "\n";
-  // fileval << parmlups << "\n";
-  // fileval << sz << "\n";
+  fileval << seqmlups << "\n";
+  fileval << parmlups << "\n";
+  fileval << sz << "\n";
 
 }
 
@@ -250,9 +250,9 @@ void analyze_SOA( int sz, int szf, double tau, double g, double U ) {
 
   setInitialVelocity(ux, uy, U);
 
-  calcEqDis_SOA(fvalsinit, rho, ux, uy, g, tau);
-  calcEqDis_SOA(fvalsprev, rho, ux, uy, g, tau);
-  calcEqDis_SOA(fvals, rho, ux, uy, g, tau);
+  calcEqDis_AOS(fvalsinit, rho, ux, uy, g, tau);
+  calcEqDis_AOS(fvalsprev, rho, ux, uy, g, tau);
+  calcEqDis_AOS(fvals, rho, ux, uy, g, tau);
 
   double *ex = new double[Q9]{0, 1, 0, -1, 0, 1, -1, -1, 1};
   double *ey = new double[Q9]{0, 0, 1, 0, -1, 1, 1, -1, -1};
@@ -272,7 +272,7 @@ void analyze_SOA( int sz, int szf, double tau, double g, double U ) {
   // performLBMPullIn(fvals, fvalsprev, feq, rho, ux, uy, uxprev, uyprev, ex, ey,
                   //  g, tau, szf, Niter, tol);
   // double error = 1e6;
-  performLBMStepsPullIn_SOA(fvals, fvalsprev, feq, ex, ey, tau, g);
+  performLBMStepsPullIn_AOS(fvals, fvalsprev, feq, ex, ey, tau, g);
 
   // while (t < Niter)
   // {
@@ -295,20 +295,14 @@ void analyze_SOA( int sz, int szf, double tau, double g, double U ) {
   cudaEventSynchronize(seq_stop);
   cudaEventElapsedTime(&seq_time, seq_start, seq_stop);
 
-  calcMacroscopic_SOA(fvals, rho, ux, uy, ex, ey);
+  calcMacroscopic_AOS(fvals, rho, ux, uy, ex, ey);
 
   double *dfvals, *dfvalsprev, *dex, *dey;
+
   chkerr(cudaMalloc((void **)&dfvals, sizeof(double) * szf));
   chkerr(cudaMalloc((void **)&dfvalsprev, sizeof(double) * szf));
   chkerr(cudaMalloc((void **)&dex, sizeof(double) * Q9));
   chkerr(cudaMalloc((void **)&dey, sizeof(double) * Q9));
-
-  chkerr(cudaMemcpy(dfvals, fvalsinit, sizeof(double) * szf,
-                    cudaMemcpyHostToDevice));
-  chkerr(cudaMemcpy(dfvalsprev, fvalsinit, sizeof(double) * szf,
-                    cudaMemcpyHostToDevice));
-  chkerr(cudaMemcpy(dex, ex, sizeof(double) * Q9, cudaMemcpyHostToDevice));
-  chkerr(cudaMemcpy(dey, ey, sizeof(double) * Q9, cudaMemcpyHostToDevice));
 
   double *rhod = new double[sz];
   std::fill(rhod, rhod + sz, 0);
@@ -318,6 +312,17 @@ void analyze_SOA( int sz, int szf, double tau, double g, double U ) {
 
   double *uyd = new double[sz];
   std::fill(uyd, uyd + sz, 0);
+
+  setInitialVelocity(uxd, uyd, U);
+  std::fill(fvalsinit, fvalsinit + szf, 0);
+  calcEqDis_SOA(fvalsinit, rhod, uxd, uyd, g, tau);
+
+  chkerr(cudaMemcpy(dfvals, fvalsinit, sizeof(double) * szf,
+                    cudaMemcpyHostToDevice));
+  chkerr(cudaMemcpy(dfvalsprev, fvalsinit, sizeof(double) * szf,
+                    cudaMemcpyHostToDevice));
+  chkerr(cudaMemcpy(dex, ex, sizeof(double) * Q9, cudaMemcpyHostToDevice));
+  chkerr(cudaMemcpy(dey, ey, sizeof(double) * Q9, cudaMemcpyHostToDevice));
 
   dim3 block_spec;
   block_spec.x = BLOCKSIZE;
@@ -373,7 +378,7 @@ void analyze_SOA( int sz, int szf, double tau, double g, double U ) {
 
   accuracyTest(ux, uy, uxd, uyd, sz);
 
-  std::string fullfiledir = root_dir + "TextFiles/";
+  std::string fullfiledir = root_dir + "TextFiles/SOA/";
 
   // printu(ux, uy,fullfiledir + "velocity_SOA.txt");
   // printval(rho, fullfiledir + "rho_SOA.txt");
@@ -383,9 +388,9 @@ void analyze_SOA( int sz, int szf, double tau, double g, double U ) {
   // printval(rhod, fullfiledir + "rhodevice_SOA.txt");
   // printf(fvalsd, fullfiledir + "fvalsdevice_SOA.txt");
 
-  // std::string filenameval = "timecalcNx=" + std::to_string(Nx) + "Ny=" + std::to_string(Ny) + ".txt";
+  std::string filenameval = fullfiledir + "timecalcNx=" + std::to_string(Nx) + "Ny=" + std::to_string(Ny) + ".txt";
 
-  std::ofstream fileval( fullfiledir + "timecalc_SOA.txt" );
+  std::ofstream fileval( filenameval );
 
   fileval << seq_time << "\n";
   fileval << par_time << "\n";
@@ -400,7 +405,9 @@ void analyze_SOA( int sz, int szf, double tau, double g, double U ) {
 
 }
 
-int main() {
+int main( int argc, char* argv[] ) {
+
+  std::string optimization = argv[1];
 
   int szf = Ny * Nx * Q9;
   int sz = Nx * Ny;
@@ -412,8 +419,16 @@ int main() {
   constexpr double g = 0.001102;
   constexpr double U = 0.1;
 
-  // analyze_AOS( sz, szf, tau, g, U );
-  analyze_SOA( sz, szf, tau, g, U );
+  if( optimization == "AOS" ) 
+    analyze_AOS( sz, szf, tau, g, U );
+  else if( optimization == "SOA" )
+    analyze_SOA( sz, szf, tau, g, U );
+  else if( optimization == "SM" ) {
+
+  }
+  else {
+    throw std::invalid_argument( "Wrong argument" );
+  }
 
   return 0;
 }
