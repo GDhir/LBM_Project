@@ -39,6 +39,8 @@ __global__ void parlbm_AOS(double *fvals, double* fvalsprev, double *ex, double 
   int idx = threadIdx.x + blockIdx.x * blockDim.x;
   int fidx = idx*Q9;
 
+  int xval{0}, yval{0}, tempi{0}, tempj{0}, ftempidx{0};
+
   if( idx < Nx*Ny ) {
 
     int i = idx%Nx;
@@ -46,11 +48,11 @@ __global__ void parlbm_AOS(double *fvals, double* fvalsprev, double *ex, double 
 
     for (int k = 0; k < Q9; k++) {
 
-      int xval = ex[k];
-      int yval = ey[k];
+      xval = ex[k];
+      yval = ey[k];
 
-      int tempi = i - xval;
-      int tempj = j - yval;
+      tempi = i - xval;
+      tempj = j - yval;
 
       if (tempi == Nx) {
         tempi = 0;
@@ -64,7 +66,7 @@ __global__ void parlbm_AOS(double *fvals, double* fvalsprev, double *ex, double 
         tempj = Ny - 1;
       }
 
-      int ftempidx = tempj * Nx * Q9 + tempi * Q9 + k;
+      ftempidx = tempj * Nx * Q9 + tempi * Q9 + k;
 
       fvals[ fidx + k ] = fvalsprev[ ftempidx ];
     }
