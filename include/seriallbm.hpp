@@ -9,15 +9,21 @@
 #include <math.h>
 #include "utils.hpp"
 
-void calcMacroscopic(double *fvals, double *rho, double *ux, double *uy, double *ex, double *ey);
+void calcMacroscopic_AOS(double *fvals, double *rho, double *ux, double *uy, double *ex, double *ey);
+
+void calcMacroscopic_SOA(double *fvals, double *rho, double *ux, double *uy, double *ex, double *ey);
 
 void performStreamPushOut(double *fvals, double *ftemp, double *ex, double *ey);
 
-void performLBMStepsPullIn(double *fvals, double *fvalsprev, double *feq, double *ex, double *ey, double tau, double g);
+void performLBMStepsPullIn_AOS(double *fvals, double *fvalsprev, double *feq, double *ex, double *ey, double tau, double g);
 
-void performLBMPullIn(double *fvals,  double *fvalsprev, double *feq, double *rho, double *ux, double *uy, double* uxprev, double* uyprev, double *ex, double *ey, double g, double tau, int szf, int Niter, double tol);
+void performLBMStepsPullIn_SOA(double *fvals, double *fvalsprev, double *feq, double *ex, double *ey, double tau, double g);
 
-void calcEqDis(double *feq, double *rho, double *ux, double *uy, double g, double tau);
+void performLBMPullIn_AOS(double *fvals,  double *fvalsprev, double *feq, double *rho, double *ux, double *uy, double* uxprev, double* uyprev, double *ex, double *ey, double g, double tau, int szf, int Niter, double tol);
+
+void calcEqDis_AOS(double *feq, double *rho, double *ux, double *uy, double g, double tau);
+
+void calcEqDis_SOA(double *feq, double *rho, double *ux, double *uy, double g, double tau);
 
 void collide(double *f, double *ftemp, double *feq, double tau);
 

@@ -44,7 +44,7 @@ def plotvelocity( filename, filenameprefix ):
             Y[ j, i ] = j
 
         
-        print( uyvals[ 1:Ny - 1, : ] )
+        # print( uyvals[ 1:Ny - 1, : ] )
 
         plt.figure()
         plt.quiver( X[ 1:Ny - 1, : ], Y[ 1:Ny - 1, : ], uxvals[ 1:Ny - 1, : ], uyvals[ 1:Ny - 1, : ] )
@@ -75,9 +75,9 @@ def runSim( root_dir, outfile ):
 
 def getPerfData( root_dir ):
 
-    build_dir = root_dir + "/build"
+    build_dir = root_dir + "/TextFiles"
 
-    fileval = build_dir + "/timecalc.txt"
+    fileval = build_dir + "/timecalc_SOA.txt"
 
     seqdata = 0
     pardata = 0
@@ -104,8 +104,8 @@ def problemSizeBench( root_dir ):
     Nxscatter = []
     Nyscatter = []
 
-    # Nxvals = [256]
-    # Nyvals = [64]
+    # Nxvals = [4096]
+    # Nyvals = [128]
 
     utilsfile = root_dir + "/include/utils.hpp"
     fullfile = []
@@ -151,32 +151,34 @@ def problemSizeBench( root_dir ):
             pardata.append( partime )
             speedup.append( speedupval )
 
-    # fig = plt.figure()
-    # ax = plt.axes(projection='3d')
-    # ax.scatter3D(Nxscatter, Nyscatter, speedup)
-    # ax.set_xlabel('Nx')
-    # ax.set_ylabel('Ny')
-    # ax.set_zlabel('SpeedUp')
-    # plt.savefig( "speedupplot.png" )
-    # plt.show()
+    fullfileprefix = root_dir + "PlotFiles/SOA_"
 
-    # X, Y = np.meshgrid(Nxvals, Nyvals)
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
+    ax.scatter3D(Nxscatter, Nyscatter, speedup)
+    ax.set_xlabel('Nx')
+    ax.set_ylabel('Ny')
+    ax.set_zlabel('SpeedUp')
+    plt.savefig( fullfileprefix + "speedupplot.png" )
+    plt.show()
 
-    # speedupnp = np.array( speedup )
-    # speedupnp = np.reshape( speedupnp, (len(Nxvals), len(Nyvals)) )
+    X, Y = np.meshgrid(Nxvals, Nyvals)
 
-    # fig = plt.figure()
-    # ax = plt.axes(projection='3d')
-    # ax.contour3D(X, Y, speedupnp, 50)
-    # ax.set_xlabel('Nx')
-    # ax.set_ylabel('Ny')
-    # ax.set_zlabel('Speedup')
-    # plt.savefig( "speedupcontour.png" )
-    # plt.show()
+    speedupnp = np.array( speedup )
+    speedupnp = np.reshape( speedupnp, (len(Nxvals), len(Nyvals)) )
 
-    # print( seqdata )
-    # print( pardata )
-    # print( speedup )  
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
+    ax.contour3D(X, Y, speedupnp, 50)
+    ax.set_xlabel('Nx')
+    ax.set_ylabel('Ny')
+    ax.set_zlabel('Speedup')
+    plt.savefig( fullfileprefix + "speedupcontour.png" )
+    plt.show()
+
+    print( seqdata )
+    print( pardata )
+    print( speedup )  
 
 
 if __name__ == "__main__":
@@ -186,7 +188,10 @@ if __name__ == "__main__":
     # plotvelocity( "../build/velocity.txt", "host" )
     # plotvelocity( "../build/velocitydevice.txt", "device" )
 
-    root_dir = "/uufs/chpc.utah.edu/common/home/u1444601/CS6235/LBM_Project"
+    root_dir = "/uufs/chpc.utah.edu/common/home/u1444601/CS6235/LBM_Project/"
+
+    # plotvelocity( root_dir + "TextFiles/velocity_SOA.txt", root_dir + "PlotFiles/host_SOA" )
+    # plotvelocity( root_dir + "TextFiles/velocitydevice_SOA.txt", root_dir + "PlotFiles/device_SOA" )
 
     problemSizeBench( root_dir )
 

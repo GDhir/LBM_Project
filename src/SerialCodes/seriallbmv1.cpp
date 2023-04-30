@@ -1,6 +1,6 @@
 #include "seriallbm.hpp"
 
-void calcMacroscopic(double *fvals, double *rho, double *ux, double *uy, double *ex, double *ey)
+void calcMacroscopic_AOS(double *fvals, double *rho, double *ux, double *uy, double *ex, double *ey)
 {
 
     for (int j = 0; j < Ny; j++)
@@ -20,6 +20,40 @@ void calcMacroscopic(double *fvals, double *rho, double *ux, double *uy, double 
             {
 
                 int fidx = idx * Q9 + k;
+
+                rho[idx] += fvals[fidx];
+                ux[idx] += fvals[fidx] * ex[k];
+                uy[idx] += fvals[fidx] * ey[k];
+            }
+
+            ux[idx] /= rho[idx];
+            uy[idx] /= rho[idx];
+        }
+    }
+}
+
+void calcMacroscopic_SOA(double *fvals, double *rho, double *ux, double *uy, double *ex, double *ey)
+{
+
+    int sz{Nx*Ny}, fidx{0};
+
+    for (int j = 0; j < Ny; j++)
+    {
+        for (int i = 0; i < Nx; i++)
+        {
+
+            int idx = j * Nx + i;
+
+            ux[idx] = 0;
+            uy[idx] = 0;
+            rho[idx] = 0;
+
+            // if( !isSolid[ idx ] ) {
+
+            for (int k = 0; k < Q9; k++)
+            {
+
+                fidx = sz*k + idx;
 
                 rho[idx] += fvals[fidx];
                 ux[idx] += fvals[fidx] * ex[k];
@@ -83,7 +117,7 @@ void performStreamPushOut(double *fvals, double *ftemp, double *ex, double *ey)
 
 // Pull In Code
 
-void performLBMStepsPullIn(double *fvals, double* fvalsprev, double *feq, double *ex, double *ey, double tau, double g)
+void performLBMStepsPullIn_AOS(double *fvals, double* fvalsprev, double *feq, double *ex, double *ey, double tau, double g)
 {
 
     double f1 = 3.0;
@@ -103,6 +137,9 @@ void performLBMStepsPullIn(double *fvals, double* fvalsprev, double *feq, double
     double uxuy7{0};
     double uxuy8{0};
     double usq{0};
+    double temp{0};
+
+    int idx{0}, fidx{0}, xval{0}, yval{0}, ftempidx{0};
 
     double rho, ux, uy;
 
@@ -111,14 +148,14 @@ void performLBMStepsPullIn(double *fvals, double* fvalsprev, double *feq, double
         for (int i = 0; i < Nx; i++)
         {
 
-            int idx = j * Nx + i;
-            int fidx = idx*Q9;
+            idx = j * Nx + i;
+            fidx = idx*Q9;
 
             for (int k = 0; k < Q9; k++)
             {
 
-                int xval = ex[k];
-                int yval = ey[k];
+                xval = ex[k];
+                yval = ey[k];
 
                 int tempi = i - xval;
                 int tempj = j - yval;
@@ -141,7 +178,7 @@ void performLBMStepsPullIn(double *fvals, double* fvalsprev, double *feq, double
                     tempj = Ny - 1;
                 }
 
-                int ftempidx = tempj * Nx * Q9 + tempi * Q9 + k;
+                ftempidx = tempj * Nx * Q9 + tempi * Q9 + k;
 
                 fvals[fidx + k] = fvalsprev[ftempidx];
             }
@@ -196,7 +233,6 @@ void performLBMStepsPullIn(double *fvals, double* fvalsprev, double *feq, double
             }
             else
             {
-                double temp;
 
                 temp = fvals[fidx + 2];
                 fvals[fidx + 2] = fvals[fidx + 4];
@@ -215,7 +251,141 @@ void performLBMStepsPullIn(double *fvals, double* fvalsprev, double *feq, double
     }
 }
 
-void performLBMPullIn(double *fvals,  double *fvalsprev, double *feq, double *rho, double *ux, double *uy, double* uxprev, double* uyprev, double *ex, double *ey, double g, double tau, int szf, int Niter, double tol)
+void performLBMStepsPullIn_SOA(double *fvals, double* fvalsprev, double *feq, double *ex, double *ey, double tau, double g)
+{
+
+    double f1 = 3.0;
+    double f2 = 9.0 / 2.0;
+    double f3 = 3.0 / 2.0;
+
+    double rt0{0};
+    double rt1{0};
+    double rt2{0};
+
+    double ueqxij{0};
+    double ueqyij{0};
+    double uxsq{0};
+    double uysq{0};
+    double uxuy5{0};
+    double uxuy6{0};
+    double uxuy7{0};
+    double uxuy8{0};
+    double usq{0};
+
+    double rho, ux, uy;
+    int sz{Nx*Ny};
+    int idx{0};
+    int tempidx{0};
+    double temp{0};
+
+    for (int j = 0; j < Ny; j++)
+    {
+        for (int i = 0; i < Nx; i++)
+        {
+
+            idx = j * Nx + i;
+
+            for (int k = 0; k < Q9; k++)
+            {
+
+                int xval = ex[k];
+                int yval = ey[k];
+
+                int tempi = i - xval;
+                int tempj = j - yval;
+
+                if (tempi == Nx)
+                {
+                    tempi = 0;
+                }
+                else if (tempi == -1)
+                {
+                    tempi = Nx - 1;
+                }
+
+                if (tempj == Ny)
+                {
+                    tempj = 0;
+                }
+                else if (tempj == -1)
+                {
+                    tempj = Ny - 1;
+                }
+
+                tempidx = tempj*Nx + tempi;
+
+                fvals[ sz*k + idx ] = fvalsprev[ sz*k + tempidx ];
+            }
+
+            rho = 0;
+            ux = 0;
+            uy = 0;
+
+            for (int k = 0; k < Q9; k++)
+            {
+
+                rho += fvals[sz*k + idx];
+                ux += fvals[sz*k + idx] * ex[k];
+                uy += fvals[sz*k + idx] * ey[k];
+            }
+
+            ux /= rho;
+            uy /= rho;
+
+            if (j > 0 && j < Ny - 1)
+            {
+
+                rt0 = (4.0 / 9.0) * rho;
+                rt1 = (1.0 / 9.0) * rho;
+                rt2 = (1.0 / 36.0) * rho;
+
+                ueqxij = ux + tau * g;
+                ueqyij = uy;
+
+                uxsq = ueqxij * ueqxij;
+                uysq = ueqyij * ueqyij;
+                uxuy5 = ueqxij + ueqyij;
+                uxuy6 = -ueqxij + ueqyij;
+                uxuy7 = -ueqxij - ueqyij;
+                uxuy8 = ueqxij - ueqyij;
+                usq = uxsq + uysq;
+
+                feq[0] = rt0 * (1 - f3 * usq);
+                feq[1] = rt1 * (1 + f1 * ueqxij + f2 * uxsq - f3 * usq);
+                feq[2] = rt1 * (1 + f1 * ueqyij + f2 * uysq - f3 * usq);
+                feq[3] = rt1 * (1 - f1 * ueqxij + f2 * uxsq - f3 * usq);
+                feq[4] = rt1 * (1 - f1 * ueqyij + f2 * uysq - f3 * usq);
+                feq[5] = rt2 * (1 + f1 * uxuy5 + f2 * uxuy5 * uxuy5 - f3 * usq);
+                feq[6] = rt2 * (1 + f1 * uxuy6 + f2 * uxuy6 * uxuy6 - f3 * usq);
+                feq[7] = rt2 * (1 + f1 * uxuy7 + f2 * uxuy7 * uxuy7 - f3 * usq);
+                feq[8] = rt2 * (1 + f1 * uxuy8 + f2 * uxuy8 * uxuy8 - f3 * usq);
+
+                for (int k = 0; k < Q9; k++)
+                {
+                    fvals[sz*k + idx] = fvals[sz*k + idx] - (fvals[sz*k + idx] - feq[k]) / tau;
+                }
+            }
+            else
+            {
+
+                temp = fvals[sz*2 + idx];
+                fvals[sz*2 + idx] = fvals[sz*4 + idx];
+                fvals[sz*4 + idx] = temp;
+
+                temp = fvals[sz*7 + idx];
+                fvals[sz*7 + idx] = fvals[sz*5 + idx];
+                fvals[sz*5 + idx] = temp;
+
+                temp = fvals[sz*8 + idx];
+                fvals[sz*8 + idx] = fvals[sz*6 + idx];
+                fvals[sz*6 + idx] = temp;
+
+            }
+        }
+    }
+}
+
+void performLBMPullIn_AOS(double *fvals,  double *fvalsprev, double *feq, double *rho, double *ux, double *uy, double* uxprev, double* uyprev, double *ex, double *ey, double g, double tau, int szf, int Niter, double tol)
 {
 
     int t = 0;
@@ -223,8 +393,8 @@ void performLBMPullIn(double *fvals,  double *fvalsprev, double *feq, double *rh
 
     while (t < Niter)
     {
-        performLBMStepsPullIn(fvals, fvalsprev, feq, ex, ey, tau, g);
-        calcMacroscopic( fvals, rho, ux, uy, ex, ey );
+        performLBMStepsPullIn_AOS(fvals, fvalsprev, feq, ex, ey, tau, g);
+        calcMacroscopic_AOS( fvals, rho, ux, uy, ex, ey );
         // error = calcVelError( ux, uy, uxprev, uyprev, tol );
         // std::swap( fvalsprev, fvals );
         t += 1;
@@ -239,7 +409,7 @@ void performLBMPullIn(double *fvals,  double *fvalsprev, double *feq, double *rh
     }
 }
 
-void calcEqDis(double *feq, double *rho, double *ux, double *uy, double g, double tau)
+void calcEqDis_AOS(double *feq, double *rho, double *ux, double *uy, double g, double tau)
 {
 
     double f1 = 3.0;
@@ -293,6 +463,66 @@ void calcEqDis(double *feq, double *rho, double *ux, double *uy, double g, doubl
             feq[fidx + 6] = rt2 * (1 + f1 * uxuy6 + f2 * uxuy6 * uxuy6 - f3 * usq);
             feq[fidx + 7] = rt2 * (1 + f1 * uxuy7 + f2 * uxuy7 * uxuy7 - f3 * usq);
             feq[fidx + 8] = rt2 * (1 + f1 * uxuy8 + f2 * uxuy8 * uxuy8 - f3 * usq);
+
+            // std::cout << feq[ fidx ] << "\t" << feq[ fidx + 1 ] << "\t" << feq[ fidx + 2 ] << "\n";
+        }
+    }
+}
+
+void calcEqDis_SOA(double *feq, double *rho, double *ux, double *uy, double g, double tau)
+{
+
+    double f1 = 3.0;
+    double f2 = 9.0 / 2.0;
+    double f3 = 3.0 / 2.0;
+
+    double rt0{0};
+    double rt1{0};
+    double rt2{0};
+
+    double ueqxij{0};
+    double ueqyij{0};
+    double uxsq{0};
+    double uysq{0};
+    double uxuy5{0};
+    double uxuy6{0};
+    double uxuy7{0};
+    double uxuy8{0};
+    double usq{0};
+
+    int sz{Nx*Ny};
+
+    for (int j = 1; j < Ny - 1; j++)
+    {
+        for (int i = 0; i < Nx; i++)
+        {
+
+            int idx = j * Nx + i;
+
+            rt0 = (4.0 / 9.0) * rho[idx];
+            rt1 = (1.0 / 9.0) * rho[idx];
+            rt2 = (1.0 / 36.0) * rho[idx];
+
+            ueqxij = ux[idx] + tau * g;
+            ueqyij = uy[idx];
+
+            uxsq = ueqxij * ueqxij;
+            uysq = ueqyij * ueqyij;
+            uxuy5 = ueqxij + ueqyij;
+            uxuy6 = -ueqxij + ueqyij;
+            uxuy7 = -ueqxij - ueqyij;
+            uxuy8 = ueqxij - ueqyij;
+            usq = uxsq + uysq;
+
+            feq[sz*0 + idx] = rt0 * (1 - f3 * usq);
+            feq[sz*1 + idx] = rt1 * (1 + f1 * ueqxij + f2 * uxsq - f3 * usq);
+            feq[sz*2 + idx] = rt1 * (1 + f1 * ueqyij + f2 * uysq - f3 * usq);
+            feq[sz*3 + idx] = rt1 * (1 - f1 * ueqxij + f2 * uxsq - f3 * usq);
+            feq[sz*4 + idx] = rt1 * (1 - f1 * ueqyij + f2 * uysq - f3 * usq);
+            feq[sz*5 + idx] = rt2 * (1 + f1 * uxuy5 + f2 * uxuy5 * uxuy5 - f3 * usq);
+            feq[sz*6 + idx] = rt2 * (1 + f1 * uxuy6 + f2 * uxuy6 * uxuy6 - f3 * usq);
+            feq[sz*7 + idx] = rt2 * (1 + f1 * uxuy7 + f2 * uxuy7 * uxuy7 - f3 * usq);
+            feq[sz*8 + idx] = rt2 * (1 + f1 * uxuy8 + f2 * uxuy8 * uxuy8 - f3 * usq);
 
             // std::cout << feq[ fidx ] << "\t" << feq[ fidx + 1 ] << "\t" << feq[ fidx + 2 ] << "\n";
         }
@@ -385,8 +615,8 @@ void performLBMPushOut(double *fvals, double *rho, double *ux, double *uy, doubl
     {
 
         performStreamPushOut(fvals, ftemp, ex, ey);
-        calcMacroscopic(ftemp, rho, ux, uy, ex, ey);
-        calcEqDis(feq, rho, ux, uy, g, tau);
+        calcMacroscopic_AOS(ftemp, rho, ux, uy, ex, ey);
+        calcEqDis_AOS(feq, rho, ux, uy, g, tau);
         collide(fvals, ftemp, feq, tau);
         applyBC(fvals, ftemp);
 
