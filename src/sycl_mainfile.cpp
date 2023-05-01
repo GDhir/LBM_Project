@@ -6,118 +6,15 @@ using namespace sycl;
 
 class Kernel;
 
-int main() {
-    std::cout << "Listing Available Platforms\n";
+double performLBMStepsSYCL( sycl::queue& Q, sycl::nd_range<1>& grid, sycl::buffer<double, 1>& fvalsbuf, sycl::buffer<double, 1>& fvalsprevbuf, double tau, double g ) {
 
-    for (auto platform : sycl::platform::get_platforms())
-    {
-        std::cout << "Platform: "
-                  << platform.get_info<sycl::info::platform::name>()
-                  << std::endl;
+    auto wall_begin = std::chrono::steady_clock::now();
 
-        for (auto device : platform.get_devices())
-        {
-            std::cout << "\tDevice: "
-                      << device.get_info<sycl::info::device::name>()
-                      << std::endl;
-        }
-    }
-
-    std::cout << "Using the GPU Selctor\n";
-    sycl::queue Q(sycl::gpu_selector_v);
-
-    std::cout << "Selector chose: " << Q.get_device().get_info<sycl::info::device::name>() << std::endl;
-
-    constexpr int szf = Ny * Nx * Q9;
-    constexpr int sz = Nx * Ny;
-
-    constexpr double tau = 1;
-    // double g = 0.0001373;
-    // double U = 0.0333*1.5;
-
-    constexpr double g = 0.001102;
-    constexpr double U = 0.1;
-
-    double *fvals = new double[szf];
-    std::fill(fvals, fvals + szf, 0);
-
-    double *fvalsd = new double[szf];
-    std::fill(fvalsd, fvalsd + szf, 0);
-
-    double *fvalsinit = new double[szf];
-    std::fill(fvalsinit, fvalsinit + szf, 0);
-
-    double *rho = new double[sz];
-    std::fill(rho, rho + sz, 1);
-
-    double *ux = new double[sz];
-    std::fill(ux, ux + sz, 0);
-
-    double *uy = new double[sz];
-    std::fill(uy, uy + sz, 0);
-
-    double *rhod = new double[sz];
-    std::fill(rhod, rhod + sz, 1);
-
-    double *uxd = new double[sz];
-    std::fill(uxd, uxd + sz, 0);
-
-    double *uyd = new double[sz];
-    std::fill(uyd, uyd + sz, 0);
-
-    double *fvalsprev = new double[szf];
-    std::fill(fvalsprev, fvalsprev + szf, 0);
-
-    double *fvalsprevd = new double[szf];
-    std::fill(fvalsprevd, fvalsprevd + szf, 0);
-
-    double *feq = new double[Q9];
-    std::fill(feq, feq + Q9, 0);
-
-    setInitialVelocity(ux, uy, U);
-    setInitialVelocity(uxd, uyd, U);
-
-    calcEqDis_SOA(fvalsinit, rho, ux, uy, g, tau);
-    // calcEqDis_SOA(fvalsprev, rho, ux, uy, g, tau);
-    // calcEqDis_SOA(fvals, rho, ux, uy, g, tau);
-
-    std::copy( fvalsinit, fvalsinit + szf, fvalsprev );
-    std::copy( fvalsinit, fvalsinit + szf, fvalsprevd );    
-    std::copy( fvalsinit, fvalsinit + szf, fvals );
-    std::copy( fvalsinit, fvalsinit + szf, fvalsd );
-
-    constexpr int Niter = 1;
-    // double tol = 1e-8;
-    int t = 0;
-
-    performLBMStepsPullIn_SOA(fvals, fvalsprev, feq, tau, g);
-
-    calcMacroscopic_SOA( fvals, rho, ux, uy );
-
-    /************************************************************************************************/
-    // Entering SYCL Code
-    /************************************************************************************************/
-
-    // double* indexes = new double[sz];
-    // std::fill(indexes, indexes + sz, 0);
-
-    // size_t gridsz = ceil( sz/(double) BLOCKSIZE );
-
-    sycl::range global{sz};
-    sycl::range local{BLOCKSIZE};
-
-    sycl::nd_range grid{ global, local };
-
-    auto fvalsbuf = sycl::buffer( fvalsd, sycl::range{szf} );
-    auto fvalsprevbuf = sycl::buffer( fvalsprevd, sycl::range{szf} );
-
-    // auto indexbuf = sycl::buffer( indexes, sycl::range{sz} );
-
-    Q.submit([&](handler& h) {
+    event e = Q.submit([&](handler& h) {
 
         sycl::accessor fvalsAcc{fvalsbuf, h};
         sycl::accessor fvalsprevAcc{fvalsprevbuf, h};
-        sycl::accessor indexAcc{indexbuf, h};
+        // sycl::accessor indexAcc{indexbuf, h};
 
         h.parallel_for(grid, [=]( auto& it ) {
             double f1 = 3.0;
@@ -264,8 +161,18 @@ int main() {
 
     Q.wait_and_throw();
 
+    auto wall_end = std::chrono::steady_clock::now();
+
+    auto wall_diff = std::chrono::duration_cast<std::chrono::nanoseconds>(wall_end - wall_begin).count();
+    std::cout << "event time elapsed " << wall_diff << "nanos" << std::endl;
+
+    return(e.template get_profiling_info<info::event_profiling::command_end>() -
+       e.template get_profiling_info<info::event_profiling::command_start>());
+}
+
+void calcMacroscopicSYCL_SOA( sycl::buffer<double, 1>& fvalsbuf, double* uxd, double* uyd, double* rhod ) {
+
     sycl::host_accessor hostfvalsAcc{fvalsbuf};
-    sycl::host_accessor hostindexAcc{indexbuf};
     int fidx{0};
 
     for (int j = 0; j < Ny; j++)
@@ -299,6 +206,118 @@ int main() {
         }
     }
 
+}
+
+int main() {
+    std::cout << "Listing Available Platforms\n";
+
+    for (auto platform : sycl::platform::get_platforms())
+    {
+        std::cout << "Platform: "
+                  << platform.get_info<sycl::info::platform::name>()
+                  << std::endl;
+
+        for (auto device : platform.get_devices())
+        {
+            std::cout << "\tDevice: "
+                      << device.get_info<sycl::info::device::name>()
+                      << std::endl;
+        }
+    }
+
+    std::cout << "Using the GPU Selctor\n";
+    sycl::queue Q(sycl::gpu_selector_v, property::queue::enable_profiling{});
+
+    std::cout << "Selector chose: " << Q.get_device().get_info<sycl::info::device::name>() << std::endl;
+
+    constexpr double tau = 1;
+    // double g = 0.0001373;
+    // double U = 0.0333*1.5;
+
+    constexpr double g = 0.001102;
+    constexpr double U = 0.1;
+
+    double *fvals = new double[szf];
+    std::fill(fvals, fvals + szf, 0);
+
+    double *fvalsd = new double[szf];
+    std::fill(fvalsd, fvalsd + szf, 0);
+
+    double *fvalsinit = new double[szf];
+    std::fill(fvalsinit, fvalsinit + szf, 0);
+
+    double *rho = new double[sz];
+    std::fill(rho, rho + sz, 1);
+
+    double *ux = new double[sz];
+    std::fill(ux, ux + sz, 0);
+
+    double *uy = new double[sz];
+    std::fill(uy, uy + sz, 0);
+
+    double *rhod = new double[sz];
+    std::fill(rhod, rhod + sz, 1);
+
+    double *uxd = new double[sz];
+    std::fill(uxd, uxd + sz, 0);
+
+    double *uyd = new double[sz];
+    std::fill(uyd, uyd + sz, 0);
+
+    double *fvalsprev = new double[szf];
+    std::fill(fvalsprev, fvalsprev + szf, 0);
+
+    double *fvalsprevd = new double[szf];
+    std::fill(fvalsprevd, fvalsprevd + szf, 0);
+
+    double *feq = new double[Q9];
+    std::fill(feq, feq + Q9, 0);
+
+    setInitialVelocity(ux, uy, U);
+    setInitialVelocity(uxd, uyd, U);
+
+    calcEqDis_SOA(fvalsinit, rho, ux, uy, g, tau);
+    // calcEqDis_SOA(fvalsprev, rho, ux, uy, g, tau);
+    // calcEqDis_SOA(fvals, rho, ux, uy, g, tau);
+
+    std::copy( fvalsinit, fvalsinit + szf, fvalsprev );
+    std::copy( fvalsinit, fvalsinit + szf, fvalsprevd );    
+    std::copy( fvalsinit, fvalsinit + szf, fvals );
+    std::copy( fvalsinit, fvalsinit + szf, fvalsd );
+
+    constexpr int Niter = 1;
+    // double tol = 1e-8;
+    int t = 0;
+
+    auto wall_begin = std::chrono::steady_clock::now();
+
+    performLBMStepsPullIn_SOA(fvals, fvalsprev, feq, tau, g);
+
+    auto wall_end = std::chrono::steady_clock::now();
+
+    auto seq_time = std::chrono::duration_cast<std::chrono::milliseconds>(wall_end - wall_begin).count();
+
+    calcMacroscopic_SOA( fvals, rho, ux, uy );
+
+    /************************************************************************************************/
+    // Entering SYCL Code
+    /************************************************************************************************/
+
+    // double* indexes = new double[sz];
+    // std::fill(indexes, indexes + sz, 0);
+
+    // size_t gridsz = ceil( sz/(double) BLOCKSIZE );
+
+    sycl::range global{sz};
+    sycl::range local{BLOCKSIZE};
+
+    sycl::nd_range grid{ global, local };
+
+    auto fvalsbuf = sycl::buffer( fvalsd, sycl::range{szf} );
+    auto fvalsprevbuf = sycl::buffer( fvalsprevd, sycl::range{szf} );
+
+    double sycl_time = performLBMStepsSYCL( Q, grid, fvalsbuf, fvalsprevbuf, tau, g )*( pow(10, -6) );
+    calcMacroscopicSYCL_SOA( fvalsbuf, uxd, uyd, rhod );
 
     accuracyTest( ux, uy, uxd, uyd, sz );
 
@@ -312,8 +331,28 @@ int main() {
     printval(rhod, fullfiledir + "rhodevice.txt");
     // printf(fvals, fullfiledir + "fvalsdevice.txt");
 
-    
+    std::string filenameval = fullfiledir + "timecalcNx=" + std::to_string(Nx) + "Ny=" + std::to_string(Ny) + ".txt";
 
+    std::ofstream fileval( filenameval );
+    fileval << seq_time << "\n";
+    fileval << sycl_time << "\n";
+    fileval << seq_time/sycl_time << "\n";
+
+//   std::cout << seq_time << "\n";
+//   std::cout << par_time << "\n";
+//   std::cout << seq_time/par_time << "\n";
+
+    double seqmlups = sz*Niter*1.0/std::pow( 10, 3 )/seq_time;
+    double parmlups = sz*Niter*1.0/std::pow( 10, 3 )/sycl_time;
+
+    fileval << seqmlups << "\n";
+    fileval << parmlups << "\n";
+
+    // fileval << sycl_time << "\n";
+
+    // double syclmlups = sz*Niter*1.0/std::pow( 10, 3 )/sycl_time;
+
+    // fileval << syclmlups << "\n";
 
     return 0;
 }
