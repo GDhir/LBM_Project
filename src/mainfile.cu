@@ -163,7 +163,7 @@ void analyze_AOS( int sz, int szf, double tau, double g, double U ) {
 
   accuracyTest(ux, uy, uxd, uyd, sz);
 
-  std::string fullfiledir = root_dir + "TextFiles/AOS/";
+  std::string fullfiledir = root_dir + "TextFiles/CUDA/AOS/";
 
   // printu(ux, uy,fullfiledir + "velocity_AOS.txt");
   // printval(rho, fullfiledir + "rho_AOS.txt");
@@ -181,8 +181,8 @@ void analyze_AOS( int sz, int szf, double tau, double g, double U ) {
   fileval << par_time << "\n";
   fileval << seq_time/par_time << "\n";
 
-  double seqmlups = sz*Niter*1.0/std::pow( 10, 6 )/seq_time;
-  double parmlups = sz*Niter*1.0/std::pow( 10, 6 )/par_time;
+  double seqmlups = sz*Niter*1.0/std::pow( 10, 3 )/seq_time;
+  double parmlups = sz*Niter*1.0/std::pow( 10, 3 )/par_time;
 
   fileval << seqmlups << "\n";
   fileval << parmlups << "\n";
@@ -352,7 +352,7 @@ void analyze_SOA( int sz, int szf, double tau, double g, double U ) {
 
   accuracyTest(ux, uy, uxd, uyd, sz);
 
-  std::string fullfiledir = root_dir + "TextFiles/SOA/";
+  std::string fullfiledir = root_dir + "TextFiles/CUDA/SOA/";
 
   // printu(ux, uy,fullfiledir + "velocity_SOA.txt");
   // printval(rho, fullfiledir + "rho_SOA.txt");
@@ -370,8 +370,8 @@ void analyze_SOA( int sz, int szf, double tau, double g, double U ) {
   fileval << par_time << "\n";
   fileval << seq_time/par_time << "\n";
 
-  double seqmlups = sz*Niter*1.0/std::pow( 10, 6 )/seq_time;
-  double parmlups = sz*Niter*1.0/std::pow( 10, 6 )/par_time;
+  double seqmlups = sz*Niter*1.0/std::pow( 10, 3 )/seq_time;
+  double parmlups = sz*Niter*1.0/std::pow( 10, 3 )/par_time;
 
   fileval << seqmlups << "\n";
   fileval << parmlups << "\n";
@@ -542,7 +542,7 @@ void analyze_SM( int sz, int szf, double tau, double g, double U ) {
 
   accuracyTest(ux, uy, uxd, uyd, sz);
 
-  std::string fullfiledir = root_dir + "TextFiles/SM/";
+  std::string fullfiledir = root_dir + "TextFiles/CUDA/SM/";
 
   // printu(ux, uy,fullfiledir + "velocity_SOA.txt");
   // printval(rho, fullfiledir + "rho_SOA.txt");
@@ -564,8 +564,8 @@ void analyze_SM( int sz, int szf, double tau, double g, double U ) {
   std::cout << par_time << "\n";
   std::cout << seq_time/par_time << "\n";
 
-  double seqmlups = sz*Niter*1.0/std::pow( 10, 6 )/seq_time;
-  double parmlups = sz*Niter*1.0/std::pow( 10, 6 )/par_time;
+  double seqmlups = sz*Niter*1.0/std::pow( 10, 3 )/seq_time;
+  double parmlups = sz*Niter*1.0/std::pow( 10, 3 )/par_time;
 
   fileval << seqmlups << "\n";
   fileval << parmlups << "\n";

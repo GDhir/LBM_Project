@@ -60,14 +60,14 @@ def plotvelocity( filename, filenameprefix ):
         plt.colorbar()
         plt.savefig( filenameprefix + "plotcontourf_pullin.png" )
 
-def runSim( root_dir, outfile, inargs ):
+def runSim( root_dir, outfile, executableName, inargs ):
 
     build_dir = root_dir + "/build"
 
     compile_cmdlist = ["make"]
-    cmdlist = ["./lbm-gpu", inargs]
+    cmdlist = ["./" + executableName, inargs]
 
-    open(outfile, 'w').close()
+    # open(outfile, 'w').close()
 
     subprocess.run(compile_cmdlist, cwd=build_dir  )
 
@@ -82,6 +82,8 @@ def getPerfData( fileval ):
     seqdata = 0
     pardata = 0
     speedup = 0
+    seqmlups = 0
+    parmlups = 0
 
     with open(fileval) as fval:
 
@@ -89,13 +91,15 @@ def getPerfData( fileval ):
 
         seqdata = float( alldata[ 0 ] ) 
         pardata = float( alldata[ 1 ] )
-        speedup = float( alldata[ 2 ] ) 
+        speedup = float( alldata[ 2 ] )
+        seqmlups = float( alldata[ 3 ] ) 
+        parmlups = float( alldata[ 4 ] )
 
-    return ( seqdata, pardata, speedup )
+    return ( seqdata, pardata, speedup, seqmlups, parmlups )
 
-def plotPerfDataContourScatter( root_dir, folderName, Nxscatter, Nyscatter, speedup, Nxvals, Nyvals ):
+def plotPerfDataContourScatter( root_dir, folderName, libraryName, Nxscatter, Nyscatter, speedup, Nxvals, Nyvals ):
 
-    fullfileprefix = root_dir + "PlotFiles/" + folderName + "/"
+    fullfileprefix = root_dir + "PlotFiles/" + libraryName + "/" + folderName + "/"
 
     fig = plt.figure()
     ax = plt.axes(projection='3d')
@@ -120,7 +124,7 @@ def plotPerfDataContourScatter( root_dir, folderName, Nxscatter, Nyscatter, spee
     plt.savefig( fullfileprefix + "speedupcontour.png" )
     plt.show()
 
-def problemSizeBench( root_dir, folderName, Nxvals, Nyvals ):
+def problemSizeBench( root_dir, folderName, libraryName, Nxvals, Nyvals ):
 
     Nxscatter = []
     Nyscatter = []
@@ -164,23 +168,83 @@ def problemSizeBench( root_dir, folderName, Nxvals, Nyvals ):
                 fval.writelines(fullfile)
 
             outfile = root_dir + "build/txt/" + "out" + "Nx=" + str(Nx) + "Ny=" + str(Ny) + ".txt"
-            runSim( root_dir, outfile, folderName )
 
-            build_dir = root_dir + "/TextFiles/" + folderName + "/"
+            if libraryName == "CUDA":  
+                runSim( root_dir, outfile, "lbm-gpu", folderName )
+            elif libraryName == "SYCL":
+                runSim( root_dir, outfile, "lbm-sycl", folderName )      
+
+            build_dir = root_dir + "/TextFiles/" + libraryName + "/" + folderName + "/"
 
             fileval = build_dir + "timecalc" + "Nx=" + str(Nx) + "Ny=" + str(Ny) + ".txt"
 
-            seqtime, partime, speedupval = getPerfData( fileval )
+            seqtime, partime, speedupval, _, _ = getPerfData( fileval )
 
             seqdata.append( seqtime )
             pardata.append( partime )
             speedup.append( speedupval )
 
-    # plotPerfDataContourScatter( root_dir, folderName, Nxscatter, Nyscatter, speedup, Nxvals, Nyvals )
+    # plotPerfDataContourScatter( root_dir, folderName, libraryName, Nxscatter, Nyscatter, speedup, Nxvals, Nyvals )
 
     print( seqdata )
     print( pardata )
     print( speedup )  
+
+def SYCLvsCUDABench( root_dir, option ):
+
+    Nxvals = [ 512, 1024, 2048, 4096, 8192 ]
+    Nyvals = [ 256 ]
+
+    libraryNames = ["SYCL", "CUDA"]
+
+    problemSizeBench( root_dir, "SOA", "SYCL", Nxvals, Nyvals )
+
+    alldata = []
+    speedupdata = []
+    allmlupsdata = []
+
+    dirval = root_dir + "PlotFiles/"
+
+    for idx, library in enumerate( libraryNames ):
+
+        perfdata = []
+        mlupsdata = []
+
+        for Nx in Nxvals:
+            for Ny in Nyvals:
+
+                build_dir = root_dir + "/TextFiles/" + library + "/" + option + "/"
+
+                fileval = build_dir + "timecalc" + "Nx=" + str(Nx) + "Ny=" + str(Ny) + ".txt"
+
+                _, partime, speedup, seqmlups, parmlups = getPerfData( fileval )
+
+                perfdata.append( partime )
+                mlupsdata.append( parmlups )
+
+        alldata.append( perfdata )
+        allmlupsdata.append( mlupsdata )
+
+        if idx > 0:
+            for j, timeval in enumerate( perfdata ):
+                speedupdata.append( timeval/alldata[0][j] )
+
+        plt.plot( Nxvals, mlupsdata, "-o", label = library )
+        plt.xlabel( "Number of Nodes in X Dimension $(N_x)$" )
+        plt.ylabel( "MLUPS" )
+
+    fignameprefix = libraryNames[0] + "vs" + libraryNames[1]
+
+    plt.legend()
+    # plt.savefig( dirval + fignameprefix + "_Time.png" )
+    plt.savefig( dirval + fignameprefix + "_MLUPS.png" )
+
+    plt.figure()
+    plt.plot( Nxvals, speedupdata, "-o" )
+    plt.xlabel( "Number of Nodes in X Dimension $(N_x)$" )
+    plt.ylabel( "SpeedUp" )
+    plt.savefig( dirval + fignameprefix + "_Speedup.png" )
+
 
 def compareOptions( root_dir, options ):
 
@@ -200,8 +264,9 @@ def compareOptions( root_dir, options ):
 
     alldata = []
     speedupdata = []
+    allmlupsdata = []
 
-    dirval = root_dir + "PlotFiles/"
+    dirval = root_dir + "PlotFiles/CUDA/"
 
     plt.figure()
 
@@ -210,32 +275,40 @@ def compareOptions( root_dir, options ):
         problemSizeBench( root_dir, opt, Nxvals, Nyvals )
 
         perfdata = []
+        mlupsdata = []
 
         for Nx in Nxvals:
             for Ny in Nyvals:
 
-                build_dir = root_dir + "/TextFiles/" + opt + "/"
+                build_dir = root_dir + "/TextFiles/CUDA/" + opt + "/"
 
                 fileval = build_dir + "timecalc" + "Nx=" + str(Nx) + "Ny=" + str(Ny) + ".txt"
 
-                _, partime,_ = getPerfData( fileval )
+                _, partime, speedup, seqmlups, parmlups = getPerfData( fileval )
 
                 perfdata.append( partime )
+                mlupsdata.append( parmlups )
 
         alldata.append( perfdata )
+        allmlupsdata.append( mlupsdata )
 
         if idx > 0:
-            for j, timeval in enumerate( alldata[idx] ):
+            for j, timeval in enumerate( perfdata ):
                 speedupdata.append( timeval/alldata[0][j] )
 
-        plt.plot( Nxvals, alldata[idx], "-o", label = opt )
+        # plt.plot( Nxvals, alldata[idx], "-o", label = opt )
+        # plt.xlabel( "Number of Nodes in X Dimension $(N_x)$" )
+        # plt.ylabel( "Time" )
+
+        plt.plot( Nxvals, mlupsdata, "-o", label = opt )
         plt.xlabel( "Number of Nodes in X Dimension $(N_x)$" )
-        plt.ylabel( "Time" )
+        plt.ylabel( "MLUPS" )
     
     fignameprefix = options[0] + "vs" + options[1]
 
     plt.legend()
-    plt.savefig( dirval + fignameprefix + "_Time.png" )
+    # plt.savefig( dirval + fignameprefix + "_Time.png" )
+    plt.savefig( dirval + fignameprefix + "_MLUPS.png" )
 
     plt.figure()
     plt.plot( Nxvals, speedupdata, "-o" )
@@ -258,8 +331,10 @@ if __name__ == "__main__":
 
     # problemSizeBench( root_dir, "AOS" )
 
-    options = ["SM", "SOA"]
-    compareOptions( root_dir, options )
+    options = ["SOA", "AOS"]
+    # compareOptions( root_dir, options )
+
+    SYCLvsCUDABench( root_dir, "SOA" )
 
     # import matplotlib
 

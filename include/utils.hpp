@@ -11,10 +11,13 @@
 #define BLOCKSIZE 256
 
 constexpr int Ny = 256;
-constexpr int Nx = 1024;
+constexpr int Nx = 8192;
 
 constexpr double ex[] = {   0,    1,    0,   -1,    0,     1,    -1,    -1, 1};
 constexpr double ey[] = {   0,    0,    1,    0,   -1,     1,     1,    -1, -1};
+
+constexpr int szf = Ny * Nx * Q9;
+constexpr int sz = Nx * Ny;
 
 const std::string root_dir = "/uufs/chpc.utah.edu/common/home/u1444601/CS6235/LBM_Project/";
 
