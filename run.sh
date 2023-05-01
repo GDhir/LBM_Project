@@ -69,6 +69,29 @@ if [ -f "cuda_sm_lbm_lid_cavity_2048x2048.pydat" ]; then
 fi
 
 echo ""
+echo "Running Lid-driven Cavity sycl code:"
+
+clang++ syclLidDrivenCavity.cpp -fsycl -fsycl-targets=nvptx64-nvidia-cuda -DNX=128 -DNY=128 -DSINGLE_PRECISION=1 -Wno-unknown-cuda-version -o syclLidDrivenCavity-128
+./syclLidDrivenCavity-128
+python3 display.py sycl_lbm_lid_cavity_128x128.pydat
+
+clang++ syclLidDrivenCavity.cpp -fsycl -fsycl-targets=nvptx64-nvidia-cuda -DNX=256 -DNY=256 -DSINGLE_PRECISION=1 -Wno-unknown-cuda-version -o syclLidDrivenCavity-256
+./syclLidDrivenCavity-256
+python3 display.py sycl_lbm_lid_cavity_256x256.pydat
+
+clang++ syclLidDrivenCavity.cpp -fsycl -fsycl-targets=nvptx64-nvidia-cuda -DNX=512 -DNY=512 -DSINGLE_PRECISION=1 -Wno-unknown-cuda-version -o syclLidDrivenCavity-512
+./syclLidDrivenCavity-512
+python3 display.py sycl_lbm_lid_cavity_512x512.pydat
+
+clang++ syclLidDrivenCavity.cpp -fsycl -fsycl-targets=nvptx64-nvidia-cuda -DNX=1024 -DNY=1024 -DSINGLE_PRECISION=1 -Wno-unknown-cuda-version -o syclLidDrivenCavity-1024
+./syclLidDrivenCavity-1024
+python3 display.py sycl_lbm_lid_cavity_1024x1024.pydat
+
+clang++ syclLidDrivenCavity.cpp -fsycl -fsycl-targets=nvptx64-nvidia-cuda -DNX=2048 -DNY=2048 -DSINGLE_PRECISION=1 -Wno-unknown-cuda-version -o syclLidDrivenCavity-2048
+./syclLidDrivenCavity-2048
+python3 display.py sycl_lbm_lid_cavity_2048x2048.pydat
+
+echo ""
 echo "Running Lid-driven Cavity serial code:"
 
 ./cmake-build-release/serialLidDrivenCavity
