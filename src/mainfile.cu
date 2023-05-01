@@ -8,31 +8,6 @@ inline void chkerr(cudaError_t code) {
   }
 }
 
-void accuracyTest(double *ux, double *uy, double *uxd, double *uyd, int sz) {
-
-  double error{0};
-  double tol{1e-4};
-  bool success = true;
-
-  for (int i = 0; i < sz; i++) {
-
-    if (abs(ux[i] - uxd[i]) > tol) {
-      std::cout << "Outputs don't match at i = \t" << i << "\n";
-      success = false;
-      break;
-    }
-
-    if (abs(uy[i] - uyd[i]) > tol) {
-      std::cout << "Outputs don't match at i = \t" << i << "\n";
-      success = false;
-      break;
-    }
-  }
-
-  if (success)
-    std::cout << "SUCCESS, Outputs match \n";
-}
-
 void analyze_AOS( int sz, int szf, double tau, double g, double U ) {
 
   double *fvals = new double[szf];
@@ -74,7 +49,6 @@ void analyze_AOS( int sz, int szf, double tau, double g, double U ) {
   double *ex = new double[Q9]{0, 1, 0, -1, 0, 1, -1, -1, 1};
   double *ey = new double[Q9]{0, 0, 1, 0, -1, 1, 1, -1, -1};
 
-  double c = 1;
   int Niter = 1;
   double tol = 1e-8;
   int t = 0;
@@ -89,7 +63,7 @@ void analyze_AOS( int sz, int szf, double tau, double g, double U ) {
   // performLBMPullIn(fvals, fvalsprev, feq, rho, ux, uy, uxprev, uyprev, ex, ey,
                   //  g, tau, szf, Niter, tol);
   // double error = 1e6;
-  performLBMStepsPullIn_AOS(fvals, fvalsprev, feq, ex, ey, tau, g);
+  performLBMStepsPullIn_AOS(fvals, fvalsprev, feq, tau, g);
 
   // while (t < Niter)
   // {
@@ -111,7 +85,7 @@ void analyze_AOS( int sz, int szf, double tau, double g, double U ) {
   cudaEventSynchronize(seq_stop);
   cudaEventElapsedTime(&seq_time, seq_start, seq_stop);
 
-  calcMacroscopic_AOS(fvals, rho, ux, uy, ex, ey);
+  calcMacroscopic_AOS(fvals, rho, ux, uy);
 
   double *dfvals, *dfvalsprev, *dex, *dey;
   chkerr(cudaMalloc((void **)&dfvals, sizeof(double) * szf));
@@ -169,7 +143,7 @@ void analyze_AOS( int sz, int szf, double tau, double g, double U ) {
   cudaError_t err = cudaGetLastError();
 
   if (err != cudaSuccess) {
-    fprintf(stderr, "Failed to launch vectorAdd kernel (error code %s)!\n",
+    fprintf(stderr, "Failed to launch parlbm kernel (error code %s)!\n",
             cudaGetErrorString(err));
     exit(EXIT_FAILURE);
   }
@@ -185,7 +159,7 @@ void analyze_AOS( int sz, int szf, double tau, double g, double U ) {
   chkerr(cudaFree(dex));
   chkerr(cudaFree(dey));
 
-  calcMacroscopic_AOS(fvalsd, rhod, uxd, uyd, ex, ey);
+  calcMacroscopic_AOS(fvalsd, rhod, uxd, uyd);
 
   accuracyTest(ux, uy, uxd, uyd, sz);
 
@@ -272,7 +246,7 @@ void analyze_SOA( int sz, int szf, double tau, double g, double U ) {
   // performLBMPullIn(fvals, fvalsprev, feq, rho, ux, uy, uxprev, uyprev, ex, ey,
                   //  g, tau, szf, Niter, tol);
   // double error = 1e6;
-  performLBMStepsPullIn_AOS(fvals, fvalsprev, feq, ex, ey, tau, g);
+  performLBMStepsPullIn_AOS(fvals, fvalsprev, feq, tau, g);
 
   // while (t < Niter)
   // {
@@ -295,7 +269,7 @@ void analyze_SOA( int sz, int szf, double tau, double g, double U ) {
   cudaEventSynchronize(seq_stop);
   cudaEventElapsedTime(&seq_time, seq_start, seq_stop);
 
-  calcMacroscopic_AOS(fvals, rho, ux, uy, ex, ey);
+  calcMacroscopic_AOS(fvals, rho, ux, uy);
 
   double *dfvals, *dfvalsprev, *dex, *dey;
 
@@ -358,7 +332,7 @@ void analyze_SOA( int sz, int szf, double tau, double g, double U ) {
   cudaError_t err = cudaGetLastError();
 
   if (err != cudaSuccess) {
-    fprintf(stderr, "Failed to launch vectorAdd kernel (error code %s)!\n",
+    fprintf(stderr, "Failed to launch parlbm kernel (error code %s)!\n",
             cudaGetErrorString(err));
     exit(EXIT_FAILURE);
   }
@@ -374,7 +348,7 @@ void analyze_SOA( int sz, int szf, double tau, double g, double U ) {
   chkerr(cudaFree(dex));
   chkerr(cudaFree(dey));
 
-  calcMacroscopic_SOA(fvalsd, rhod, uxd, uyd, ex, ey);
+  calcMacroscopic_SOA(fvalsd, rhod, uxd, uyd);
 
   accuracyTest(ux, uy, uxd, uyd, sz);
 
@@ -462,7 +436,7 @@ void analyze_SM( int sz, int szf, double tau, double g, double U ) {
   // performLBMPullIn(fvals, fvalsprev, feq, rho, ux, uy, uxprev, uyprev, ex, ey,
                   //  g, tau, szf, Niter, tol);
   // double error = 1e6;
-  performLBMStepsPullIn_AOS(fvals, fvalsprev, feq, ex, ey, tau, g);
+  performLBMStepsPullIn_AOS(fvals, fvalsprev, feq, tau, g);
 
   // while (t < Niter)
   // {
@@ -485,7 +459,7 @@ void analyze_SM( int sz, int szf, double tau, double g, double U ) {
   cudaEventSynchronize(seq_stop);
   cudaEventElapsedTime(&seq_time, seq_start, seq_stop);
 
-  calcMacroscopic_AOS(fvals, rho, ux, uy, ex, ey);
+  calcMacroscopic_AOS(fvals, rho, ux, uy);
 
   double *dfvals, *dfvalsprev, *dex, *dey;
 
@@ -548,7 +522,7 @@ void analyze_SM( int sz, int szf, double tau, double g, double U ) {
   cudaError_t err = cudaGetLastError();
 
   if (err != cudaSuccess) {
-    fprintf(stderr, "Failed to launch vectorAdd kernel (error code %s)!\n",
+    fprintf(stderr, "Failed to launch parlbm kernel (error code %s)!\n",
             cudaGetErrorString(err));
     exit(EXIT_FAILURE);
   }
@@ -564,7 +538,7 @@ void analyze_SM( int sz, int szf, double tau, double g, double U ) {
   chkerr(cudaFree(dex));
   chkerr(cudaFree(dey));
 
-  calcMacroscopic_SOA(fvalsd, rhod, uxd, uyd, ex, ey);
+  calcMacroscopic_SOA(fvalsd, rhod, uxd, uyd);
 
   accuracyTest(ux, uy, uxd, uyd, sz);
 
