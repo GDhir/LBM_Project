@@ -8,7 +8,7 @@ if [ ! -d "cmake-build-release" ]; then
 fi
 
 source ./venv/bin/activate
-cmake -DCMAKE_BUILD_TYPE=Release -G  "Unix Makefiles" -S ./ -B ./cmake-build-release
+cmake -DCMAKE_BUILD_TYPE=Release -G  "Unix Makefiles" -S ./ -B ./cmake-build-release -DSINGLE_PRECISION=1
 cmake --build ./cmake-build-release --target clean -j 4
 cmake --build ./cmake-build-release --target all -j 4
 
