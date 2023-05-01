@@ -35,4 +35,5 @@
 # ignore folders
 build/
 images/
+includeSYCL/
 *.log

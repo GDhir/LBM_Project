@@ -1,6 +1,6 @@
 #include "seriallbm.hpp"
 
-void calcMacroscopic_AOS(double *fvals, double *rho, double *ux, double *uy, double *ex, double *ey)
+void calcMacroscopic_AOS(double *fvals, double *rho, double *ux, double *uy)
 {
 
     for (int j = 0; j < Ny; j++)
@@ -32,7 +32,7 @@ void calcMacroscopic_AOS(double *fvals, double *rho, double *ux, double *uy, dou
     }
 }
 
-void calcMacroscopic_SOA(double *fvals, double *rho, double *ux, double *uy, double *ex, double *ey)
+void calcMacroscopic_SOA(double *fvals, double *rho, double *ux, double *uy)
 {
 
     int sz{Nx*Ny}, fidx{0};
@@ -66,7 +66,7 @@ void calcMacroscopic_SOA(double *fvals, double *rho, double *ux, double *uy, dou
     }
 }
 
-void performStreamPushOut(double *fvals, double *ftemp, double *ex, double *ey)
+void performStreamPushOut(double *fvals, double *ftemp)
 {
 
     for (int j = 0; j < Ny; j++)
@@ -117,7 +117,7 @@ void performStreamPushOut(double *fvals, double *ftemp, double *ex, double *ey)
 
 // Pull In Code
 
-void performLBMStepsPullIn_AOS(double *fvals, double* fvalsprev, double *feq, double *ex, double *ey, double tau, double g)
+void performLBMStepsPullIn_AOS(double *fvals, double* fvalsprev, double *feq, double tau, double g)
 {
 
     double f1 = 3.0;
@@ -251,7 +251,7 @@ void performLBMStepsPullIn_AOS(double *fvals, double* fvalsprev, double *feq, do
     }
 }
 
-void performLBMStepsPullIn_SOA(double *fvals, double* fvalsprev, double *feq, double *ex, double *ey, double tau, double g)
+void performLBMStepsPullIn_SOA(double *fvals, double* fvalsprev, double *feq, double tau, double g)
 {
 
     double f1 = 3.0;
@@ -385,7 +385,7 @@ void performLBMStepsPullIn_SOA(double *fvals, double* fvalsprev, double *feq, do
     }
 }
 
-void performLBMPullIn_AOS(double *fvals,  double *fvalsprev, double *feq, double *rho, double *ux, double *uy, double* uxprev, double* uyprev, double *ex, double *ey, double g, double tau, int szf, int Niter, double tol)
+void performLBMPullIn_AOS(double *fvals,  double *fvalsprev, double *feq, double *rho, double *ux, double *uy, double* uxprev, double* uyprev, double g, double tau, int szf, int Niter, double tol)
 {
 
     int t = 0;
@@ -393,8 +393,8 @@ void performLBMPullIn_AOS(double *fvals,  double *fvalsprev, double *feq, double
 
     while (t < Niter)
     {
-        performLBMStepsPullIn_AOS(fvals, fvalsprev, feq, ex, ey, tau, g);
-        calcMacroscopic_AOS( fvals, rho, ux, uy, ex, ey );
+        performLBMStepsPullIn_AOS(fvals, fvalsprev, feq, tau, g);
+        calcMacroscopic_AOS( fvals, rho, ux, uy );
         // error = calcVelError( ux, uy, uxprev, uyprev, tol );
         // std::swap( fvalsprev, fvals );
         t += 1;
@@ -590,7 +590,7 @@ double calcError(double *val, double *valprev)
     return error;
 }
 
-void performLBMPushOut(double *fvals, double *rho, double *ux, double *uy, double *ex, double *ey, double g, double tau, int szf, int Niter)
+void performLBMPushOut(double *fvals, double *rho, double *ux, double *uy, double g, double tau, int szf, int Niter)
 {
 
     double *ftemp = new double[szf];
@@ -614,8 +614,8 @@ void performLBMPushOut(double *fvals, double *rho, double *ux, double *uy, doubl
     while (t < Niter)
     {
 
-        performStreamPushOut(fvals, ftemp, ex, ey);
-        calcMacroscopic_AOS(ftemp, rho, ux, uy, ex, ey);
+        performStreamPushOut(fvals, ftemp);
+        calcMacroscopic_AOS(ftemp, rho, ux, uy);
         calcEqDis_AOS(feq, rho, ux, uy, g, tau);
         collide(fvals, ftemp, feq, tau);
         applyBC(fvals, ftemp);

@@ -1,5 +1,4 @@
 #include "utils.hpp"
-#include<cmath>
 
 double calcVelError( double* ux, double* uy, double* uxprev, double* uyprev, double tol ) {
 
@@ -21,4 +20,29 @@ double calcVelError( double* ux, double* uy, double* uxprev, double* uyprev, dou
     }
 
     return std::sqrt( error );   
+}
+
+void accuracyTest(double *ux, double *uy, double *uxd, double *uyd, int sz) {
+
+  double error{0};
+  double tol{1e-4};
+  bool success = true;
+
+  for (int i = 0; i < sz; i++) {
+
+    if (std::abs(ux[i] - uxd[i]) > tol) {
+      std::cout << "Outputs don't match at i = \t" << i << "\n";
+      success = false;
+      break;
+    }
+
+    if (std::abs(uy[i] - uyd[i]) > tol) {
+      std::cout << "Outputs don't match at i = \t" << i << "\n";
+      success = false;
+      break;
+    }
+  }
+
+  if (success)
+    std::cout << "SUCCESS, Outputs match \n";
 }
