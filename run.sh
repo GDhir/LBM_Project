@@ -40,6 +40,17 @@ if [ -f "cuda_lbm_lid_cavity_2048x2048.pydat" ]; then
   python3 display.py cuda_lbm_lid_cavity_2048x2048.pydat
 fi
 
+./cmake-build-release/cudaLidDrivenCavity-4096
+if [ -f "cuda_lbm_lid_cavity_4096x4096.pydat" ]; then
+  python3 display.py cuda_lbm_lid_cavity_4096x4096.pydat
+fi
+
+./cmake-build-release/cudaLidDrivenCavity-8192
+if [ -f "cuda_lbm_lid_cavity_8192x8192.pydat" ]; then
+  python3 display.py cuda_lbm_lid_cavity_8192x8192.pydat
+fi
+
+
 echo ""
 echo "Running Lid-driven Cavity cuda code using Shared Memory:"
 
@@ -68,6 +79,18 @@ if [ -f "cuda_sm_lbm_lid_cavity_2048x2048.pydat" ]; then
   python3 display.py cuda_sm_lbm_lid_cavity_2048x2048.pydat
 fi
 
+./cmake-build-release/cudaSmLidDrivenCavity-4096
+if [ -f "cuda_sm_lbm_lid_cavity_4096x4096.pydat" ]; then
+  python3 display.py cuda_sm_lbm_lid_cavity_4096x4096.pydat
+fi
+
+
+./cmake-build-release/cudaSmLidDrivenCavity-8192
+if [ -f "cuda_sm_lbm_lid_cavity_8192x8192.pydat" ]; then
+  python3 display.py cuda_sm_lbm_lid_cavity_8192x8192.pydat
+fi
+
+
 echo ""
 echo "Running Lid-driven Cavity sycl code:"
 
@@ -90,6 +113,15 @@ python3 display.py sycl_lbm_lid_cavity_1024x1024.pydat
 clang++ syclLidDrivenCavity.cpp -fsycl -fsycl-targets=nvptx64-nvidia-cuda -DNX=2048 -DNY=2048 -DSINGLE_PRECISION=1 -Wno-unknown-cuda-version -o syclLidDrivenCavity-2048
 ./syclLidDrivenCavity-2048
 python3 display.py sycl_lbm_lid_cavity_2048x2048.pydat
+
+clang++ syclLidDrivenCavity.cpp -fsycl -fsycl-targets=nvptx64-nvidia-cuda -DNX=4096 -DNY=4096 -DSINGLE_PRECISION=1 -Wno-unknown-cuda-version -o syclLidDrivenCavity-4096
+./syclLidDrivenCavity-4096
+python3 display.py sycl_lbm_lid_cavity_4096x4096.pydat
+
+clang++ syclLidDrivenCavity.cpp -fsycl -fsycl-targets=nvptx64-nvidia-cuda -DNX=8192 -DNY=8192 -DSINGLE_PRECISION=1 -Wno-unknown-cuda-version -o syclLidDrivenCavity-8192
+./syclLidDrivenCavity-8192
+python3 display.py sycl_lbm_lid_cavity_8192x8192.pydat
+
 
 echo ""
 echo "Running Lid-driven Cavity serial code:"
